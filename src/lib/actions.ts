@@ -1,0 +1,412 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
+import { db } from "./db";
+import { createSession, destroySession, getSessionUser } from "./auth";
+import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } from "./ai";
+import { shortlistSuppliers } from "./matching";
+import { sendRfqInviteEmail } from "./email";
+
+// ---------- Auth ----------
+
+export async function registerAction(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const companyName = String(formData.get("companyName") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const role = formData.get("role") === "SUPPLIER" ? "SUPPLIER" : "BUYER";
+
+  if (!name || !companyName || !email || password.length < 8) {
+    redirect("/register?error=" + encodeURIComponent("Minden mező kötelező, a jelszó legalább 8 karakter."));
+  }
+  const existing = await db.user.findUnique({ where: { email } });
+  if (existing) {
+    redirect("/register?error=" + encodeURIComponent("Ezzel az e-mail címmel már van fiók."));
+  }
+
+  const company = await db.company.create({ data: { name: companyName, type: role } });
+  if (role === "SUPPLIER") {
+    await db.supplierProfile.create({ data: { companyId: company.id, email } });
+  }
+  const user = await db.user.create({
+    data: {
+      name,
+      email,
+      passwordHash: await bcrypt.hash(password, 10),
+      role,
+      companyId: company.id,
+    },
+  });
+  await createSession(user.id);
+  redirect(role === "SUPPLIER" ? "/supplier/profile" : "/dashboard");
+}
+
+export async function loginAction(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const next = String(formData.get("next") ?? "");
+
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    redirect("/login?error=" + encodeURIComponent("Hibás e-mail cím vagy jelszó.") + (next ? `&next=${encodeURIComponent(next)}` : ""));
+  }
+  await createSession(user.id);
+  if (next && next.startsWith("/")) redirect(next);
+  redirect(user.role === "SUPPLIER" ? "/supplier" : "/dashboard");
+}
+
+export async function logoutAction() {
+  await destroySession();
+  redirect("/");
+}
+
+// ---------- RFQ intake / létrehozás ----------
+
+export async function clarifyRfqAction(intakeText: string): Promise<ClarifyResult | { error: string }> {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER") return { error: "Bejelentkezés szükséges (vevői fiókkal)." };
+  const text = intakeText.trim();
+  if (text.length < 10) return { error: "Írd le legalább egy mondatban, mire van szükséged." };
+  return clarifyIntake(text);
+}
+
+export async function createRfqAction(payload: {
+  intakeText: string;
+  title: string;
+  categoryId: string | null;
+  regionId: string | null;
+  deadline: string | null;
+  qa: QA[];
+}) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
+
+  const category = payload.categoryId
+    ? await db.category.findUnique({ where: { id: payload.categoryId } })
+    : null;
+  const region = payload.regionId
+    ? await db.region.findUnique({ where: { id: payload.regionId } })
+    : null;
+
+  const { spec } = await buildSpec(
+    payload.intakeText,
+    payload.qa,
+    category?.name ?? null,
+    region?.name ?? null,
+  );
+
+  const rfq = await db.rfq.create({
+    data: {
+      companyId: user.companyId,
+      createdById: user.id,
+      intakeText: payload.intakeText,
+      title: payload.title.trim() || "Ajánlatkérés",
+      categoryId: category?.id ?? null,
+      regionId: region?.id ?? null,
+      deadline: payload.deadline ? new Date(payload.deadline) : null,
+      spec: JSON.stringify(spec),
+      status: "READY",
+      questions: {
+        create: payload.qa.map((x, i) => ({
+          order: i,
+          question: x.question,
+          answer: x.answer.trim() || null,
+        })),
+      },
+      auditLogs: {
+        create: { actor: user.email, event: "RFQ_CREATED", meta: payload.intakeText },
+      },
+    },
+  });
+
+  redirect(`/rfq/${rfq.id}`);
+}
+
+// ---------- RFQ kiküldés ----------
+
+export async function sendRfqAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
+
+  const rfqId = String(formData.get("rfqId") ?? "");
+  const rfq = await db.rfq.findUnique({
+    where: { id: rfqId },
+    include: { company: true, category: true },
+  });
+  if (!rfq || rfq.companyId !== user.companyId || rfq.status !== "READY") {
+    redirect(`/rfq/${rfqId}`);
+  }
+
+  const supplierIds = formData.getAll("supplierIds").map(String);
+  const extraEmails = String(formData.get("extraEmails") ?? "")
+    .split(/[\n,;]+/)
+    .map((e) => e.trim())
+    .filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+
+  if (supplierIds.length === 0 && extraEmails.length === 0) {
+    redirect(`/rfq/${rfqId}?error=${encodeURIComponent("Válassz legalább egy beszállítót vagy adj meg e-mail címet.")}`);
+  }
+
+  const spec = rfq.spec ? (JSON.parse(rfq.spec) as { summary?: string }) : {};
+  const summary = spec.summary ?? rfq.intakeText;
+  const deadlineStr = rfq.deadline ? rfq.deadline.toISOString().slice(0, 10) : null;
+
+  // Pontszámok újraszámítása az audit trail kedvéért
+  const matches = rfq.categoryId
+    ? await shortlistSuppliers(rfq.categoryId, rfq.regionId, 100)
+    : [];
+
+  for (const supplierId of supplierIds) {
+    const supplier = await db.supplierProfile.findUnique({
+      where: { id: supplierId },
+      include: { company: true },
+    });
+    if (!supplier) continue;
+    const match = matches.find((m) => m.supplierId === supplierId);
+    const token = crypto.randomBytes(24).toString("base64url");
+    await db.rfqInvite.create({
+      data: {
+        rfqId: rfq.id,
+        supplierId: supplier.id,
+        email: supplier.email,
+        companyName: supplier.company.name,
+        token,
+        matchScore: match?.score ?? null,
+        matchReason: match?.reason ?? null,
+      },
+    });
+    await db.supplierProfile.update({
+      where: { id: supplier.id },
+      data: { inviteCount: { increment: 1 } },
+    });
+    await sendRfqInviteEmail({
+      to: supplier.email,
+      companyName: supplier.company.name,
+      rfqId: rfq.id,
+      rfqTitle: rfq.title,
+      buyerCompany: rfq.company.name,
+      summary,
+      deadline: deadlineStr,
+      token,
+    });
+  }
+
+  for (const email of extraEmails) {
+    const token = crypto.randomBytes(24).toString("base64url");
+    await db.rfqInvite.create({
+      data: {
+        rfqId: rfq.id,
+        email,
+        companyName: email,
+        token,
+        matchReason: "kézzel hozzáadott külső beszállító",
+      },
+    });
+    await sendRfqInviteEmail({
+      to: email,
+      companyName: email,
+      rfqId: rfq.id,
+      rfqTitle: rfq.title,
+      buyerCompany: rfq.company.name,
+      summary,
+      deadline: deadlineStr,
+      token,
+    });
+  }
+
+  await db.rfq.update({ where: { id: rfq.id }, data: { status: "SENT" } });
+  await db.auditLog.create({
+    data: {
+      rfqId: rfq.id,
+      actor: user.email,
+      event: "RFQ_SENT",
+      meta: `${supplierIds.length} hálózati + ${extraEmails.length} külső beszállító`,
+    },
+  });
+
+  revalidatePath(`/rfq/${rfq.id}`);
+  redirect(`/rfq/${rfq.id}`);
+}
+
+// ---------- Beszállítói válasz (publikus, token alapú) ----------
+
+export async function submitOfferAction(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  const invite = await db.rfqInvite.findUnique({
+    where: { token },
+    include: { rfq: true, supplier: { include: { company: true } } },
+  });
+  if (!invite || invite.status === "OFFERED") redirect(`/r/${token}`);
+  if (invite.rfq.status === "DECIDED" || invite.rfq.status === "CLOSED") redirect(`/r/${token}`);
+
+  const priceNet = Number.parseInt(String(formData.get("priceNet") ?? ""), 10);
+  const priceUnit = String(formData.get("priceUnit") ?? "").trim() || "egyösszegű";
+  const startDate = String(formData.get("startDate") ?? "").trim() || null;
+  const validUntil = String(formData.get("validUntil") ?? "").trim() || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const companyName =
+    invite.supplier?.company.name ?? (String(formData.get("companyName") ?? "").trim() || invite.companyName);
+  const contactEmail = String(formData.get("contactEmail") ?? "").trim() || invite.email;
+
+  if (!Number.isFinite(priceNet) || priceNet <= 0) {
+    redirect(`/r/${token}?error=${encodeURIComponent("Adj meg érvényes nettó árat (Ft).")}`);
+  }
+
+  await db.offer.create({
+    data: {
+      rfqId: invite.rfqId,
+      inviteId: invite.id,
+      companyName,
+      contactEmail,
+      priceNet,
+      priceUnit,
+      startDate,
+      validUntil,
+      notes,
+    },
+  });
+  await db.rfqInvite.update({
+    where: { id: invite.id },
+    data: { status: "OFFERED", respondedAt: new Date() },
+  });
+
+  if (invite.supplierId && invite.supplier) {
+    const hours = (Date.now() - invite.sentAt.getTime()) / 3_600_000;
+    const n = invite.supplier.responseCount + 1;
+    const prevAvg = invite.supplier.avgResponseHours ?? hours;
+    await db.supplierProfile.update({
+      where: { id: invite.supplierId },
+      data: {
+        responseCount: { increment: 1 },
+        avgResponseHours: (prevAvg * (n - 1) + hours) / n,
+      },
+    });
+  }
+
+  await db.auditLog.create({
+    data: {
+      rfqId: invite.rfqId,
+      actor: contactEmail,
+      event: "OFFER_SUBMITTED",
+      meta: `${companyName}: ${priceNet} Ft (${priceUnit})`,
+    },
+  });
+
+  revalidatePath(`/rfq/${invite.rfqId}`);
+  redirect(`/r/${token}?ok=1`);
+}
+
+export async function declineInviteAction(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  const invite = await db.rfqInvite.findUnique({ where: { token } });
+  if (!invite || invite.status === "OFFERED" || invite.status === "DECLINED") redirect(`/r/${token}`);
+
+  await db.rfqInvite.update({
+    where: { id: invite.id },
+    data: { status: "DECLINED", respondedAt: new Date() },
+  });
+  await db.auditLog.create({
+    data: { rfqId: invite.rfqId, actor: invite.email, event: "INVITE_DECLINED", meta: invite.companyName },
+  });
+  revalidatePath(`/rfq/${invite.rfqId}`);
+  redirect(`/r/${token}`);
+}
+
+// ---------- Vevői döntés ----------
+
+export async function acceptOfferAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
+
+  const offerId = String(formData.get("offerId") ?? "");
+  const offer = await db.offer.findUnique({ where: { id: offerId }, include: { rfq: true } });
+  if (!offer || offer.rfq.companyId !== user.companyId) redirect("/dashboard");
+
+  await db.offer.update({ where: { id: offer.id }, data: { status: "ACCEPTED" } });
+  await db.offer.updateMany({
+    where: { rfqId: offer.rfqId, id: { not: offer.id } },
+    data: { status: "REJECTED" },
+  });
+  await db.rfq.update({ where: { id: offer.rfqId }, data: { status: "DECIDED" } });
+  await db.auditLog.create({
+    data: {
+      rfqId: offer.rfqId,
+      actor: user.email,
+      event: "OFFER_ACCEPTED",
+      meta: `${offer.companyName}: ${offer.priceNet} Ft (${offer.priceUnit})`,
+    },
+  });
+
+  revalidatePath(`/rfq/${offer.rfqId}`);
+  redirect(`/rfq/${offer.rfqId}`);
+}
+
+export async function compareOffersAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
+
+  const rfqId = String(formData.get("rfqId") ?? "");
+  const rfq = await db.rfq.findUnique({ where: { id: rfqId }, include: { offers: true } });
+  if (!rfq || rfq.companyId !== user.companyId || rfq.offers.length === 0) redirect(`/rfq/${rfqId}`);
+
+  const spec = rfq.spec ? (JSON.parse(rfq.spec) as { summary?: string }) : {};
+  const { text, aiUsed } = await compareOffers(
+    spec.summary ?? rfq.intakeText,
+    rfq.offers.map((o) => ({
+      companyName: o.companyName,
+      priceNet: o.priceNet,
+      priceUnit: o.priceUnit,
+      startDate: o.startDate,
+      validUntil: o.validUntil,
+      notes: o.notes,
+    })),
+  );
+
+  await db.rfq.update({ where: { id: rfq.id }, data: { aiComparison: text } });
+  await db.auditLog.create({
+    data: { rfqId: rfq.id, actor: user.email, event: "AI_COMPARISON", meta: aiUsed ? "Claude" : "fallback" },
+  });
+
+  revalidatePath(`/rfq/${rfq.id}`);
+  redirect(`/rfq/${rfq.id}`);
+}
+
+// ---------- Beszállítói profil ----------
+
+export async function updateSupplierProfileAction(formData: FormData) {
+  const user = await getSessionUser();
+  const profile = user?.company?.supplierProfile;
+  if (!user || user.role !== "SUPPLIER" || !profile) redirect("/login");
+
+  const categoryIds = formData.getAll("categories").map(String);
+  const regionIds = formData.getAll("regions").map(String);
+
+  await db.supplierProfile.update({
+    where: { id: profile.id },
+    data: {
+      phone: String(formData.get("phone") ?? "").trim() || null,
+      website: String(formData.get("website") ?? "").trim() || null,
+      description: String(formData.get("description") ?? "").trim() || null,
+      certifications: String(formData.get("certifications") ?? "").trim() || null,
+      nationwide: formData.get("nationwide") === "on",
+    },
+  });
+  await db.supplierCategory.deleteMany({ where: { supplierId: profile.id } });
+  await db.supplierRegion.deleteMany({ where: { supplierId: profile.id } });
+  if (categoryIds.length > 0) {
+    await db.supplierCategory.createMany({
+      data: categoryIds.map((categoryId) => ({ supplierId: profile.id, categoryId })),
+    });
+  }
+  if (regionIds.length > 0) {
+    await db.supplierRegion.createMany({
+      data: regionIds.map((regionId) => ({ supplierId: profile.id, regionId })),
+    });
+  }
+
+  revalidatePath("/supplier/profile");
+  redirect("/supplier/profile?ok=1");
+}

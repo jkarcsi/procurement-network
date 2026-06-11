@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String // "BUYER" | "SUPPLIER"
+  companyId    String?
+  company      Company? @relation(fields: [companyId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model Company {
+  id              String           @id @default(cuid())
+  name            String
+  type            String // "BUYER" | "SUPPLIER"
+  users           User[]
+  supplierProfile SupplierProfile?
+  rfqs            Rfq[]
+  createdAt       DateTime         @default(now())
+}
+
+model SupplierProfile {
+  id               String             @id @default(cuid())
+  companyId        String             @unique
+  company          Company            @relation(fields: [companyId], references: [id])
+  email            String
+  phone            String?
+  website          String?
+  description      String?
+  certifications   String? // vesszővel elválasztott lista
+  nationwide       Boolean            @default(false)
+  categories       SupplierCategory[]
+  regions          SupplierRegion[]
+  invites          RfqInvite[]
+  inviteCount      Int                @default(0)
+  responseCount    Int                @default(0)
+  avgResponseHours Float?
+}
+
+model Category {
+  id               String             @id // slug
+  name             String
+  clarifyQuestions String // JSON: string[]
+  suppliers        SupplierCategory[]
+  rfqs             Rfq[]
+}
+
+model Region {
+  id        String           @id // slug
+  name      String
+  suppliers SupplierRegion[]
+  rfqs      Rfq[]
+}
+
+model SupplierCategory {
+  supplierId String
+  categoryId String
+  supplier   SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  category   Category        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([supplierId, categoryId])
+}
+
+model SupplierRegion {
+  supplierId String
+  regionId   String
+  supplier   SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  region     Region          @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  @@id([supplierId, regionId])
+}
+
+model Rfq {
+  id           String        @id @default(cuid())
+  companyId    String
+  company      Company       @relation(fields: [companyId], references: [id])
+  createdById  String?
+  intakeText   String
+  title        String
+  categoryId   String?
+  category     Category?     @relation(fields: [categoryId], references: [id])
+  regionId     String?
+  region       Region?       @relation(fields: [regionId], references: [id])
+  status       String        @default("READY") // READY | SENT | DECIDED | CLOSED
+  deadline     DateTime?
+  spec         String? // JSON: strukturált specifikáció
+  aiComparison String?
+  questions    RfqQuestion[]
+  invites      RfqInvite[]
+  offers       Offer[]
+  auditLogs    AuditLog[]
+  createdAt    DateTime      @default(now())
+}
+
+model RfqQuestion {
+  id       String  @id @default(cuid())
+  rfqId    String
+  rfq      Rfq     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  order    Int
+  question String
+  answer   String?
+}
+
+model RfqInvite {
+  id          String           @id @default(cuid())
+  rfqId       String
+  rfq         Rfq              @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierId  String?
+  supplier    SupplierProfile? @relation(fields: [supplierId], references: [id])
+  email       String
+  companyName String
+  token       String           @unique
+  status      String           @default("SENT") // SENT | VIEWED | DECLINED | OFFERED
+  matchScore  Float?
+  matchReason String?
+  sentAt      DateTime         @default(now())
+  viewedAt    DateTime?
+  respondedAt DateTime?
+  offer       Offer?
+}
+
+model Offer {
+  id           String    @id @default(cuid())
+  rfqId        String
+  rfq          Rfq       @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  inviteId     String    @unique
+  invite       RfqInvite @relation(fields: [inviteId], references: [id])
+  companyName  String
+  contactEmail String
+  priceNet     Int
+  priceUnit    String // pl. "Ft/hó", "Ft/alkalom", "egyösszegű"
+  startDate    String?
+  validUntil   String?
+  notes        String?
+  status       String    @default("SUBMITTED") // SUBMITTED | ACCEPTED | REJECTED
+  createdAt    DateTime  @default(now())
+}
+
+model EmailOutbox {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  body      String
+  rfqId     String?
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  rfqId     String?
+  rfq       Rfq?     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  actor     String
+  event     String
+  meta      String?
+  createdAt DateTime @default(now())
+}
