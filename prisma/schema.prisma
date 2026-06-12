@@ -62,7 +62,20 @@ model Company {
   supplierProfile SupplierProfile?
   rfqs            Rfq[]
   creditLedger    CreditTransaction[]
+  apiKeys         ApiKey[]
   createdAt       DateTime         @default(now())
+}
+
+// Public API v1 credential. Only the SHA-256 hash is stored; the plaintext
+// key is shown once at creation.
+model ApiKey {
+  id         String    @id @default(cuid())
+  companyId  String
+  company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name       String
+  keyHash    String    @unique
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
 }
 
 // Credit ledger: every balance change is a row, balanceAfter makes the

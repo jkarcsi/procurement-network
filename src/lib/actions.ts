@@ -678,6 +678,17 @@ export async function toggleUserActiveAction(formData: FormData) {
   redirect("/admin/users");
 }
 
+export async function deleteApiKeyAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user || !user.companyId) redirect("/login?next=/account");
+
+  const apiKeyId = String(formData.get("apiKeyId") ?? "");
+  await db.apiKey.deleteMany({ where: { id: apiKeyId, companyId: user.companyId } });
+
+  revalidatePath("/account");
+  redirect("/account");
+}
+
 // ---------- Account / passkeys ----------
 
 export async function deletePasskeyAction(formData: FormData) {
