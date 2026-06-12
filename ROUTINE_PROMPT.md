@@ -172,6 +172,27 @@ file** for where the previous run left off.
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
 
+### 2026-06-12 — run 4
+
+- **Reviewed previous work:** full verification of the pre-existing MVP
+  (build/lint/smoke incl. HTTP, 8/8). Found and fixed one gap in the open
+  opportunities feature: `joinOpenRfqAction` validated category but not
+  region, so a hand-crafted POST could join an out-of-region RFQ — the
+  action now mirrors the listing's region rule; smoke covers the case.
+- **Shipped (P3 complete):** Pro subscription — `upgradeToProAction`
+  (hosted Checkout in subscription mode with Stripe; instant flip in demo
+  mode), webhook handles subscription `checkout.session.completed` (sets
+  plan PRO + stores customer/subscription ids) and
+  `customer.subscription.deleted` (downgrades to FREE). Pricing page is
+  session-aware: upgrade button / active-plan badge / register link, with
+  success and cancel banners. `Company.stripeCustomerId/.stripeSubscriptionId`.
+- **Verified:** build, lint, smoke (6 DB checks) green; upgrade + cancel
+  roundtrip exercised. Still pending: end-to-end run with `sk_test_` keys +
+  `stripe listen` (no keys in this environment); Stripe billing portal for
+  self-service cancellation is not wired yet — add with real keys.
+- **Next step:** P4 — passkey/biometric sign-in (WebAuthn), then P5 search/
+  filter/pagination.
+
 ### 2026-06-12 — run 3 (continued)
 
 - **Shipped:** FREE-tier limits enforced server-side: `Company.plan`

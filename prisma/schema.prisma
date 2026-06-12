@@ -23,6 +23,8 @@ model Company {
   name            String
   type            String // "BUYER" | "SUPPLIER"
   plan            String           @default("FREE") // "FREE" | "PRO"
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
   creditBalance   Int              @default(0)
   users           User[]
   supplierProfile SupplierProfile?

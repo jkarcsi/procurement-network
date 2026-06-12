@@ -553,6 +553,44 @@ export async function purchaseCreditsAction(formData: FormData) {
   redirect("/credits?ok=1");
 }
 
+// With Stripe configured (test mode), the upgrade goes through hosted
+// Checkout in subscription mode and the webhook flips the plan. Without
+// Stripe (demo), the plan flips immediately.
+export async function upgradeToProAction() {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login?next=/pricing");
+
+  const company = await db.company.findUniqueOrThrow({ where: { id: user.companyId } });
+  if (company.plan === "PRO") redirect("/pricing?pro=1");
+
+  const stripe = getStripe();
+  if (stripe) {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "huf",
+            unit_amount: 4990 * 100,
+            recurring: { interval: "month" },
+            product_data: { name: "Procura Pro előfizetés" },
+          },
+        },
+      ],
+      success_url: `${baseUrl}/pricing?pro=1`,
+      cancel_url: `${baseUrl}/pricing?canceled=1`,
+      metadata: { companyId: user.companyId },
+    });
+    redirect(session.url ?? "/pricing");
+  }
+
+  await db.company.update({ where: { id: user.companyId }, data: { plan: "PRO" } });
+  revalidatePath("/pricing");
+  redirect("/pricing?pro=1");
+}
+
 // ---------- Supplier profile ----------
 
 export async function updateSupplierProfileAction(formData: FormData) {

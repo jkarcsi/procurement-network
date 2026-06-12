@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { db } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth";
+import { upgradeToProAction } from "@/lib/actions";
 
 export const metadata: Metadata = {
   title: "Árak – Procura",
@@ -55,7 +58,18 @@ const FAQ = [
   },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pro?: string; canceled?: string }>;
+}) {
+  const { pro, canceled } = await searchParams;
+  const user = await getSessionUser();
+  const company =
+    user?.role === "BUYER" && user.companyId
+      ? await db.company.findUnique({ where: { id: user.companyId } })
+      : null;
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
       <div className="text-center">
@@ -64,6 +78,17 @@ export default function PricingPage() {
           Vevőként ingyen kezdhetsz, a beszállítóknak pedig mindig ingyenes.
         </p>
       </div>
+
+      {pro && (
+        <div className="mt-6 max-w-3xl mx-auto bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg p-3 text-center">
+          A Pro csomagod aktív – korlátlan ajánlatkérés és meghívó.
+        </div>
+      )}
+      {canceled && (
+        <div className="mt-6 max-w-3xl mx-auto bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-3 text-center">
+          A fizetést megszakítottad, a kártyádat nem terheltük.
+        </div>
+      )}
 
       <div className="mt-10 grid sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
         {PLANS.map((plan) => (
@@ -93,23 +118,38 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
-            <Link
-              href={plan.cta.href}
-              className={`mt-6 text-center font-medium px-5 py-2.5 rounded-lg ${
-                plan.highlight
-                  ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                  : "border border-slate-300 text-slate-700 hover:border-indigo-600 hover:text-indigo-700"
-              }`}
-            >
-              {plan.cta.label}
-            </Link>
+            {plan.highlight && company ? (
+              company.plan === "PRO" ? (
+                <p className="mt-6 text-center text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg py-2.5">
+                  Ez az aktív csomagod
+                </p>
+              ) : (
+                <form action={upgradeToProAction} className="mt-6">
+                  <button className="w-full text-center font-medium px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                    Váltás Pro csomagra
+                  </button>
+                </form>
+              )
+            ) : (
+              <Link
+                href={plan.cta.href}
+                className={`mt-6 text-center font-medium px-5 py-2.5 rounded-lg ${
+                  plan.highlight
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                    : "border border-slate-300 text-slate-700 hover:border-indigo-600 hover:text-indigo-700"
+                }`}
+              >
+                {plan.cta.label}
+              </Link>
+            )}
           </div>
         ))}
       </div>
 
       <p className="mt-6 text-center text-xs text-slate-400">
-        A Pro előfizetés online fizetése hamarosan érhető el – addig minden regisztrált fiók az
-        Alap csomag feltételeivel működik.
+        {process.env.STRIPE_SECRET_KEY
+          ? "A fizetés a Stripe biztonságos felületén történik – kártyaadatot nem tárolunk. Az előfizetés bármikor lemondható."
+          : "Demo környezet: a csomagváltás azonnal, fizetés nélkül aktiválódik."}
       </p>
 
       <div className="mt-14 max-w-3xl mx-auto">
