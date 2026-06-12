@@ -33,7 +33,7 @@ export default async function DashboardPage() {
         <div className="mt-10 bg-white border border-slate-200 rounded-2xl p-10 text-center">
           <p className="text-slate-600">Még nincs ajánlatkérésed.</p>
           <p className="mt-1 text-sm text-slate-400">
-            Írd le egy mondatban, mire van szükséged, a többit az AI intézi.
+            Írd le egy mondatban, mire van szükséged, a többit a Procura intézi.
           </p>
           <Link
             href="/rfq/new"

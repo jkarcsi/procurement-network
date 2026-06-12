@@ -19,7 +19,7 @@ export default async function NewRfqPage({
     <div className="max-w-3xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold text-slate-900">Új ajánlatkérés</h1>
       <p className="mt-1 text-sm text-slate-500">
-        Írd le egy mondatban az igényt – az AI pontosító kérdésekkel strukturált
+        Írd le egy mondatban az igényt – a Procura pontosító kérdésekkel strukturált
         ajánlatkéréssé alakítja.
       </p>
       <RfqWizard

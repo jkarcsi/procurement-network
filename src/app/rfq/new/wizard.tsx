@@ -97,7 +97,7 @@ export default function RfqWizard({
             disabled={loading || text.trim().length < 10}
             className="mt-3 bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
           >
-            {loading ? "Az AI elemzi az igényt…" : "AI pontosítás indítása"}
+            {loading ? "Elemezzük az igényt…" : "Pontosítás indítása"}
           </button>
         )}
         {step === 2 && (
@@ -122,7 +122,7 @@ export default function RfqWizard({
             <h2 className="font-semibold text-slate-900">Pontosítás</h2>
             {!clarify.aiUsed && (
               <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                sablon alapú (nincs AI kulcs)
+                sablon alapú pontosítás
               </span>
             )}
           </div>
@@ -181,7 +181,7 @@ export default function RfqWizard({
 
           <div className="mt-6 space-y-4">
             <p className="text-sm text-slate-500">
-              Válaszolj az AI kérdéseire – minél több a részlet, annál pontosabb ajánlatokat kapsz.
+              Válaszolj a kérdésekre – minél több a részlet, annál pontosabb ajánlatokat kapsz.
               Az üresen hagyott kérdések kimaradnak.
             </p>
             {clarify.questions.map((q, i) => (

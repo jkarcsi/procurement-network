@@ -29,11 +29,12 @@ export default function PrivacyPage() {
           </p>
         </section>
         <section>
-          <h2 className="font-semibold text-slate-900">3. AI-feldolgozás</h2>
+          <h2 className="font-semibold text-slate-900">3. Automatizált elemzés</h2>
           <p className="mt-1">
-            Az ajánlatkérések szövegét és a beérkezett ajánlatok adatait AI-szolgáltató
-            (Anthropic) dolgozza fel az összefoglalók és összehasonlítások elkészítéséhez. Az
-            AI-feldolgozás a szolgáltatás működéséhez szükséges mértékre korlátozódik.
+            Az ajánlatkérések szövegét és a beérkezett ajánlatok adatait az elemzési funkciók
+            elkészítéséhez adatfeldolgozóként igénybe vett külső nyelvi-modell szolgáltató
+            (Anthropic) dolgozza fel. A feldolgozás a szolgáltatás működéséhez szükséges
+            mértékre korlátozódik.
           </p>
         </section>
         <section>

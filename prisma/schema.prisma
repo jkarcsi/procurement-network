@@ -22,10 +22,25 @@ model Company {
   id              String           @id @default(cuid())
   name            String
   type            String // "BUYER" | "SUPPLIER"
+  creditBalance   Int              @default(0)
   users           User[]
   supplierProfile SupplierProfile?
   rfqs            Rfq[]
+  creditLedger    CreditTransaction[]
   createdAt       DateTime         @default(now())
+}
+
+// Credit ledger: every balance change is a row, balanceAfter makes the
+// history auditable without recomputation.
+model CreditTransaction {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  amount       Int // positive = top-up, negative = usage
+  balanceAfter Int
+  type         String // "BONUS" | "PURCHASE" | "USAGE"
+  description  String
+  createdAt    DateTime @default(now())
 }
 
 model SupplierProfile {

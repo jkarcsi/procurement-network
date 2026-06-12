@@ -15,9 +15,9 @@ const PLANS = [
     features: [
       "Legfeljebb 3 aktív ajánlatkérés",
       "Legfeljebb 5 meghívott beszállító ajánlatkérésenként",
-      "AI-intake és pontosító kérdések",
-      "AI beszállítói shortlist",
-      "Strukturált ajánlat-összehasonlítás",
+      "Intelligens pontosító kérdések",
+      "Automatikus beszállítói shortlist",
+      "10 kredit ajándékba a Procura elemzéshez",
     ],
   },
   {
@@ -29,7 +29,7 @@ const PLANS = [
     features: [
       "Korlátlan aktív ajánlatkérés",
       "Korlátlan meghívott beszállító",
-      "AI ajánlat-összehasonlítás részletes indoklással",
+      "Kedvezményes kreditcsomagok a Procura elemzéshez",
       "Teljes eseménynapló (audit trail)",
       "Elsőbbségi e-mail támogatás",
     ],

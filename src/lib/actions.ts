@@ -9,6 +9,7 @@ import { createSession, destroySession, getSessionUser } from "./auth";
 import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } from "./ai";
 import { shortlistSuppliers } from "./matching";
 import { sendRfqInviteEmail, sendOfferReceivedEmail, sendOfferAcceptedEmail } from "./email";
+import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 
 // ---------- Auth ----------
 
@@ -30,6 +31,8 @@ export async function registerAction(formData: FormData) {
   const company = await db.company.create({ data: { name: companyName, type: role } });
   if (role === "SUPPLIER") {
     await db.supplierProfile.create({ data: { companyId: company.id, email } });
+  } else {
+    await grantCredits(company.id, WELCOME_BONUS, "BONUS", "Üdvözlő kreditek regisztrációért");
   }
   const user = await db.user.create({
     data: {
@@ -444,6 +447,17 @@ export async function compareOffersAction(formData: FormData) {
   const rfq = await db.rfq.findUnique({ where: { id: rfqId }, include: { offers: true } });
   if (!rfq || rfq.companyId !== user.companyId || rfq.offers.length === 0) redirect(`/rfq/${rfqId}`);
 
+  const paid = await chargeCredits(
+    user.companyId,
+    COMPARISON_COST,
+    `Procura elemzés – ${rfq.title}`,
+  );
+  if (!paid) {
+    redirect(
+      `/rfq/${rfqId}?error=${encodeURIComponent("Nincs elég kredited az elemzéshez. Tölts fel kreditet a Kreditek oldalon.")}`,
+    );
+  }
+
   const spec = rfq.spec ? (JSON.parse(rfq.spec) as { summary?: string }) : {};
   const { text, aiUsed } = await compareOffers(
     spec.summary ?? rfq.intakeText,
@@ -459,11 +473,34 @@ export async function compareOffersAction(formData: FormData) {
 
   await db.rfq.update({ where: { id: rfq.id }, data: { aiComparison: text } });
   await db.auditLog.create({
-    data: { rfqId: rfq.id, actor: user.email, event: "AI_COMPARISON", meta: aiUsed ? "Claude" : "fallback" },
+    data: { rfqId: rfq.id, actor: user.email, event: "ANALYSIS_RUN", meta: aiUsed ? "részletes elemzés" : "alap elemzés" },
   });
 
   revalidatePath(`/rfq/${rfq.id}`);
   redirect(`/rfq/${rfq.id}`);
+}
+
+// ---------- Credits ----------
+
+// Demo checkout: credits are granted immediately. Stripe test-mode checkout
+// replaces the grant step (P3); the action signature stays the same.
+export async function purchaseCreditsAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login?next=/credits");
+
+  const packageId = String(formData.get("packageId") ?? "");
+  const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
+  if (!pkg) redirect("/credits");
+
+  await grantCredits(
+    user.companyId,
+    pkg.credits,
+    "PURCHASE",
+    `${pkg.name} (${pkg.credits} kredit) – demo fizetés`,
+  );
+
+  revalidatePath("/credits");
+  redirect("/credits?ok=1");
 }
 
 // ---------- Supplier profile ----------

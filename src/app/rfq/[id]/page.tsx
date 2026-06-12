@@ -132,7 +132,7 @@ export default async function RfqDetailPage({
       {rfq.status === "READY" && (
         <form action={sendRfqAction} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <input type="hidden" name="rfqId" value={rfq.id} />
-          <h2 className="font-semibold text-slate-900">AI beszállítói shortlist</h2>
+          <h2 className="font-semibold text-slate-900">Ajánlott beszállítók</h2>
           <p className="mt-1 text-sm text-slate-500">
             Kategória, régió és korábbi válaszadási statisztika alapján rangsorolva. Pipáld ki, kiknek menjen az ajánlatkérés.
           </p>
@@ -255,7 +255,7 @@ export default async function RfqDetailPage({
               <form action={compareOffersAction}>
                 <input type="hidden" name="rfqId" value={rfq.id} />
                 <button className="text-sm bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-700">
-                  ⚡ AI összehasonlítás
+                  ⚡ Procura elemzés (1 kredit)
                 </button>
               </form>
             )}
@@ -323,7 +323,7 @@ export default async function RfqDetailPage({
 
           {rfq.aiComparison && (
             <div className="mt-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-indigo-900">AI ajánlat-összehasonlítás</h3>
+              <h3 className="text-sm font-semibold text-indigo-900">Procura elemzés</h3>
               <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{rfq.aiComparison}</p>
               <p className="mt-2 text-xs text-slate-400">
                 Az összefoglaló döntéstámogatás – a végső döntés a tiéd.

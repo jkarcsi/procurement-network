@@ -15,7 +15,7 @@ export default function TermsPage() {
         <section>
           <h2 className="font-semibold text-slate-900">1. A szolgáltatás</h2>
           <p className="mt-1">
-            A Procura AI-támogatott B2B beszerzési hálózat: a vevők ajánlatkéréseket állítanak
+            A Procura B2B beszerzési hálózat: a vevők ajánlatkéréseket állítanak
             össze és küldenek ki, a beszállítók pedig strukturált ajánlatot adnak. A Procura
             közvetítő platform – a felek között létrejövő szerződéseknek nem részese, az
             ajánlatok tartalmáért a beszállító, az ajánlatkérés tartalmáért a vevő felel.
@@ -38,11 +38,13 @@ export default function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="font-semibold text-slate-900">4. AI-funkciók</h2>
+          <h2 className="font-semibold text-slate-900">4. Elemzési funkciók és kreditek</h2>
           <p className="mt-1">
-            Az AI által készített összefoglalók, kérdések és összehasonlítások döntéstámogató
+            A Procura által készített összefoglalók, kérdések és elemzések döntéstámogató
             jellegűek, nem minősülnek tanácsadásnak. A beszerzési döntés minden esetben a
-            vevőé.
+            vevőé. Egyes elemzési funkciók kreditet használnak; a kreditek a megvásárlástól
+            számított 12 hónapig használhatók fel, készpénzre nem válthatók, és a fel nem
+            használt kreditek a fiók törlésével elvesznek.
           </p>
         </section>
         <section>

@@ -12,7 +12,7 @@ import { db } from "./db";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 const EMAIL_FROM = process.env.EMAIL_FROM || "Procura <onboarding@resend.dev>";
 
-const FOOTER = ["", "Üdvözlettel,", "Procura – AI-támogatott B2B beszerzési hálózat"];
+const FOOTER = ["", "Üdvözlettel,", "Procura – B2B beszerzési hálózat"];
 
 export function replyUrl(token: string): string {
   return `${BASE_URL}/r/${token}`;

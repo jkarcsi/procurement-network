@@ -16,9 +16,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Procura – AI-támogatott B2B beszerzési hálózat",
+  title: "Procura – B2B beszerzési hálózat",
   description:
-    "Egy mondatból kiküldhető ajánlatkérés: AI-intake, beszállítói shortlist, strukturált ajánlat-összehasonlítás magyar KKV-knak.",
+    "Egy mondatból kiküldhető ajánlatkérés: intelligens pontosítás, beszállítói shortlist, strukturált ajánlat-összehasonlítás magyar KKV-knak.",
+  applicationName: "Procura",
+  appleWebApp: { capable: true, title: "Procura", statusBarStyle: "default" },
+};
+
+export const viewport = {
+  themeColor: "#4f46e5",
 };
 
 export default async function RootLayout({
@@ -36,7 +42,7 @@ export default async function RootLayout({
             <Link href="/" className="flex items-baseline gap-2">
               <span className="text-xl font-bold text-indigo-700">Procura</span>
               <span className="hidden sm:inline text-xs text-slate-500">
-                AI-támogatott B2B beszerzési hálózat
+                B2B beszerzési hálózat
               </span>
             </Link>
             <div className="flex items-center gap-4 text-sm">
@@ -44,6 +50,15 @@ export default async function RootLayout({
                 <>
                   <Link href="/dashboard" className="text-slate-600 hover:text-indigo-700">
                     Ajánlatkéréseim
+                  </Link>
+                  <Link
+                    href="/credits"
+                    className="text-slate-600 hover:text-indigo-700"
+                    title="Kreditek"
+                  >
+                    <span className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full text-xs font-semibold">
+                      {user.company?.creditBalance ?? 0} kredit
+                    </span>
                   </Link>
                   <Link
                     href="/rfq/new"
@@ -98,7 +113,7 @@ export default async function RootLayout({
         <main className="flex-1">{children}</main>
         <footer className="border-t border-slate-200 bg-white">
           <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-slate-400 flex flex-col sm:flex-row gap-2 justify-between">
-            <span>© Procura – AI-támogatott B2B beszerzési hálózat</span>
+            <span>© Procura – B2B beszerzési hálózat</span>
             <span className="flex gap-4">
               <Link href="/pricing" className="hover:text-indigo-700">
                 Árak

@@ -90,6 +90,26 @@ async function main() {
     },
   });
 
+  // Starting credits for the demo buyer (only on first seed)
+  const hasLedger = await db.creditTransaction.findFirst({
+    where: { companyId: buyerCompany.id },
+  });
+  if (!hasLedger) {
+    const updated = await db.company.update({
+      where: { id: buyerCompany.id },
+      data: { creditBalance: { increment: 25 } },
+    });
+    await db.creditTransaction.create({
+      data: {
+        companyId: buyerCompany.id,
+        amount: 25,
+        balanceAfter: updated.creditBalance,
+        type: "BONUS",
+        description: "Demo kezdőkreditek",
+      },
+    });
+  }
+
   // Suppliers
   for (const s of SUPPLIERS) {
     const existing = await db.supplierProfile.findFirst({ where: { email: s.email } });

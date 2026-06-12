@@ -16,18 +16,27 @@ product measurably closer to that goal and leave the repository green
 
 ### Definition of market-ready (the finish line)
 
-- [ ] Real transactional email delivery (provider-backed, outbox as dev fallback)
-- [ ] Public marketing/landing page with pricing, terms, and privacy pages
-- [ ] Subscription billing (Stripe **test mode only** until launch sign-off)
+- [x] Real transactional email delivery (provider-backed, outbox as dev fallback)
+- [x] Public marketing/landing page with pricing, terms, and privacy pages
+- [x] Credit-based monetization of analysis features (ledger, balance, packages)
+- [ ] Stripe **test mode** checkout for credit packages and Pro subscription
 - [ ] Plan limits enforced server-side (free vs. paid tier)
+- [ ] Biometric sign-in: passkeys/WebAuthn on web+PWA (Face ID / Touch ID /
+      fingerprint via platform authenticators)
+- [ ] Mobile app: installable PWA baseline (done) → dedicated Expo React
+      Native app on the public API, with `expo-local-authentication` biometrics
 - [ ] Search, filtering, and pagination on every list view
 - [ ] In-app + email notifications for the core loop events
 - [ ] Admin panel (users, RFQs, suppliers, moderation)
 - [ ] Rate limiting and abuse protection on auth and public endpoints
-- [ ] Automated tests for matching + offer flows; smoke test covers the full loop
+- [ ] Automated tests for matching + offer + credit flows; smoke covers the loop
 - [ ] Production deployment story (Dockerfile, CI, documented env vars, Postgres-ready)
 - [ ] Error tracking and basic product analytics (opt-in via env vars)
-- [ ] Empty/loading/error states everywhere; responsive UI
+- [ ] Legal sign-off: terms + privacy reviewed by counsel, GDPR records
+      (processor list incl. LLM provider and email provider), data export/delete
+- [ ] Audit completeness: every business mutation leaves an AuditLog row;
+      credit moves leave CreditTransaction rows
+- [ ] Empty/loading/error states everywhere; responsive, Revolut-grade UI polish
 
 ## Hard rules
 
@@ -44,6 +53,9 @@ product measurably closer to that goal and leave the repository green
 3. **Payments: Stripe test mode only.** Only `sk_test_...` keys, hosted
    Checkout (no custom card forms), webhook signature verification, empty
    strings for keys in `.env.example`. Never store card data.
+   Monetization model: **credits** pay for analysis features (ledger in
+   `src/lib/credits.ts` — all balance changes go through it), subscription
+   tiers gate volume limits.
 4. **Don't break the loop.** `npm run build`, `npm run lint`, and
    `npm run smoke` must pass before every push. The full RFQ loop must keep
    working **without** `ANTHROPIC_API_KEY` (rule-based fallbacks in
@@ -51,6 +63,11 @@ product measurably closer to that goal and leave the repository green
 5. **Read `node_modules/next/dist/docs/` before writing new Next.js patterns.**
    This Next.js version differs from training data (Next 16: `params` /
    `searchParams` are Promises, `cookies()` is async).
+6. **Branding: never say "AI" in user-facing copy.** The product is positioned
+   on outcomes, not technology. Use "Procura elemzés", "intelligens
+   pontosítás", "okos shortlist" and similar wording. "AI"/model/provider
+   names may appear only where legally required (privacy policy processor
+   list). Code-level naming (`src/lib/ai.ts`, `aiUsed`) is unaffected.
 
 ## Environment & setup (every run)
 
@@ -113,24 +130,34 @@ file** for where the previous run left off.
   offer accepted (supplier)
 - Marketing pages: `/pricing` (Alap vs Pro tiers + FAQ; checkout not wired
   yet), `/terms` and `/privacy` placeholders, footer links, landing value props
+- Credit system: `Company.creditBalance` + `CreditTransaction` ledger,
+  `src/lib/credits.ts` (grant/charge, atomic), welcome bonus on buyer
+  registration, Procura elemzés costs 1 credit, `/credits` page (balance card,
+  packages, history), balance badge in nav; demo purchase grants instantly
+  until Stripe is wired (P3)
+- "AI"-free user-facing branding (hard rule 6): Procura elemzés / intelligens
+  pontosítás / okos shortlist
+- Installable PWA baseline: `src/app/manifest.ts`, theme color, app icon
 - English codebase with Hungarian user-facing copy (see hard rule 1)
 
 ### Backlog (priority order — pick from the top)
 
 | # | Item | Scope hint |
 |---|------|-----------|
-| P3 | Stripe subscriptions (test mode) | FREE (3 active RFQs, 5 invites/RFQ) vs PRO; `Company.plan` + Stripe fields; checkout from `/pricing` (tiers already shown there); webhook handler; `src/lib/limits.ts` enforced in actions |
-| P4 | Search / filter / pagination | `/dashboard` + `/supplier` + `/supplier/opportunities`, server-side via `searchParams` |
-| P5 | Notifications | `Notification` model, nav badge, `/notifications`, notify on offer received / accepted / new matching RFQ; welcome emails on registration |
-| P6 | Admin panel | `User.role = "ADMIN"`, `/admin` stats, users/RFQs/suppliers lists, soft-deactivate users |
-| P7 | Rate limiting | In-memory limiter in `src/lib/rateLimit.ts`; login, RFQ creation, offer submission |
-| P8 | Tests | Unit tests for `matching.ts` scoring (vitest); extend smoke to offer/accept/decline flows |
-| P9 | File attachments | `Attachment` model, local `/uploads` in dev, 10 MB cap, PDF/DOCX/XLSX/PNG/JPG; attach on RFQ, download on reply page |
-| P10 | Deployment | Multi-stage Dockerfile, GitHub Actions CI (lint+build+smoke), Postgres migration notes, env var docs |
-| P11 | Monitoring | Sentry + PostHog, both strictly opt-in via env vars |
-| P12 | Supplier directory | `/suppliers` browse/filter, invite-to-RFQ from profile |
-| P13 | Reviews | Buyer rates supplier after DECIDED; rating feeds matching score (≤5 pts) |
-| P14 | Public API | `/api/v1/*` with hashed API keys, OpenAPI JSON |
+| P3 | Stripe checkout (test mode) | Credit package purchase via hosted Checkout (replaces the demo grant in `purchaseCreditsAction`) + Pro subscription; `Company.plan` + Stripe fields; webhook handler; `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction` |
+| P4 | Biometric sign-in (passkeys) | WebAuthn via `@simplewebauthn/server` + browser: register passkey from account settings, sign in with Face ID / Touch ID / fingerprint; password stays as fallback; works in PWA |
+| P5 | Search / filter / pagination | `/dashboard` + `/supplier` + `/supplier/opportunities`, server-side via `searchParams` |
+| P6 | Notifications | `Notification` model, nav badge, `/notifications`, notify on offer received / accepted / new matching RFQ; welcome emails on registration |
+| P7 | Admin panel | `User.role = "ADMIN"`, `/admin` stats, users/RFQs/suppliers lists, credit ledger view, soft-deactivate users |
+| P8 | Rate limiting | In-memory limiter in `src/lib/rateLimit.ts`; login, RFQ creation, offer submission |
+| P9 | Tests | Unit tests for `matching.ts` scoring and `credits.ts` (vitest); extend smoke to offer/accept/decline + credit charge flows |
+| P10 | Public API v1 | `/api/v1/*` with hashed API keys, OpenAPI JSON — foundation for the mobile app |
+| P11 | Mobile app (Expo) | React Native app in `mobile/` on the public API: sign-in (passkey/biometric via `expo-local-authentication`), RFQ list/detail, offer review, push notifications; Revolut-grade navigation and polish |
+| P12 | Deployment | Multi-stage Dockerfile, GitHub Actions CI (lint+build+smoke), Postgres migration notes, env var docs |
+| P13 | Monitoring | Sentry + PostHog, both strictly opt-in via env vars |
+| P14 | File attachments | `Attachment` model, local `/uploads` in dev, 10 MB cap, PDF/DOCX/XLSX/PNG/JPG |
+| P15 | Supplier directory + reviews | `/suppliers` browse/filter, invite-to-RFQ; buyer rates supplier after DECIDED, rating feeds matching (≤5 pts) |
+| P16 | Legal & data rights | Counsel-reviewed terms/privacy, GDPR data export + account deletion flows, cookie/consent banner if analytics added |
 
 ### Demo accounts (seeded)
 
@@ -142,6 +169,32 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 2
+
+- **Shipped:**
+  1. Credit-based monetization: `Company.creditBalance` +
+     `CreditTransaction` ledger (auditable `balanceAfter` chain),
+     `src/lib/credits.ts` with atomic grant/charge and overdraft rejection.
+     Procura elemzés (offer comparison) costs 1 credit; welcome bonus (10)
+     on buyer registration; seeded demo buyer starts with 25. `/credits`
+     page with balance card, three packages, transaction history; demo
+     purchase grants instantly until Stripe checkout lands (P3). Credit
+     badge in the nav.
+  2. Branding: removed "AI" from all user-facing copy (landing, wizard, RFQ
+     detail, pricing, emails, terms; privacy keeps the legally required
+     processor mention). New hard rule 6 codifies this.
+  3. Installable PWA baseline: `src/app/manifest.ts`, theme color, app icon.
+  4. Roadmap expanded for full market launch: Stripe checkout for credits
+     (P3), passkey/biometric sign-in (P4), public API (P10) feeding a
+     dedicated Expo mobile app with biometrics (P11), legal/GDPR work (P16);
+     market-ready checklist updated accordingly.
+- **Verified:** build, lint, smoke (8/8) green; credit invariants exercised
+  (charge, overdraft rejection, ledger chain); `/credits` auth-gated (307);
+  manifest + icon serve 200.
+- **Next step:** P3 — Stripe test-mode checkout for credit packages
+  (replace the demo grant in `purchaseCreditsAction`), then Pro plan +
+  `src/lib/limits.ts`.
 
 ### 2026-06-12 — run 1
 

@@ -90,7 +90,7 @@ function fallbackSpec(intakeText: string, qa: QA[], regionName: string | null): 
     schedule: "Egyeztetés alapján",
     contractType: "Egyeztetés alapján",
     requirements: [],
-    notes: "Az ajánlatkérés AI-segítség nélkül, a megadott válaszok alapján készült.",
+    notes: "Az ajánlatkérés a megadott válaszok alapján készült.",
   };
 }
 
@@ -235,8 +235,7 @@ function fallbackComparison(offers: OfferForComparison[]): string {
   return (
     `Beérkezett ajánlatok ár szerint rendezve:\n\n${lines.join("\n")}\n\n` +
     `A legalacsonyabb nettó árat ${cheapest.companyName} adta ` +
-    `(${cheapest.priceNet.toLocaleString("hu-HU")} Ft, ${cheapest.priceUnit}). ` +
-    `Részletes AI-összehasonlításhoz adj meg ANTHROPIC_API_KEY-t a .env fájlban.`
+    `(${cheapest.priceNet.toLocaleString("hu-HU")} Ft, ${cheapest.priceUnit}).`
   );
 }
 

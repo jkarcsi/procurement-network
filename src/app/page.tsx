@@ -9,7 +9,7 @@ export default function Home() {
           Egy mondat. <span className="text-indigo-600">Tíz releváns ajánlat.</span>
         </h1>
         <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
-          Írd le egy mondatban, mire van szükséged. Az AI pontosító kérdésekkel
+          Írd le egy mondatban, mire van szükséged. A Procura pontosító kérdésekkel
           ajánlatkéréssé alakítja, kiválasztja a legjobb beszállítókat, és
           összehasonlítható formában hozza vissza az ajánlatokat.
         </p>
@@ -64,17 +64,17 @@ export default function Home() {
           {
             step: "1",
             title: "Írd le az igényt",
-            text: "Egy mondat elég. Az AI 3-8 célzott kérdéssel kiegészíti, és strukturált ajánlatkérést készít belőle.",
+            text: "Egy mondat elég. A Procura 3-8 célzott kérdéssel kiegészíti, és strukturált ajánlatkérést készít belőle.",
           },
           {
             step: "2",
-            title: "AI shortlist és kiküldés",
-            text: "A rendszer kategória, régió és korábbi reakciók alapján kiválasztja a legrelevánsabb beszállítókat, és kiküldi az RFQ-t.",
+            title: "Okos shortlist és kiküldés",
+            text: "A rendszer kategória, régió és korábbi reakciók alapján kiválasztja a legrelevánsabb beszállítókat, és kiküldi az ajánlatkérést.",
           },
           {
             step: "3",
             title: "Hasonlítsd össze, dönts",
-            text: "Az ajánlatok egységes, összehasonlítható formában érkeznek vissza. Az AI összefoglal, de a döntés a tiéd.",
+            text: "Az ajánlatok egységes, összehasonlítható formában érkeznek vissza. A Procura elemzés összefoglal, de a döntés a tiéd.",
           },
         ].map((item) => (
           <div key={item.step} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
