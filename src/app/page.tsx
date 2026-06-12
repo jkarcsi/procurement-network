@@ -46,6 +46,19 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="py-8 grid sm:grid-cols-3 gap-4 text-center">
+        {[
+          { value: "1 mondat", text: "ennyi kell egy teljes értékű ajánlatkéréshez" },
+          { value: "48 órán belül", text: "érkeznek az első összehasonlítható ajánlatok" },
+          { value: "0 Ft", text: "a vevői indulás és a beszállítói részvétel" },
+        ].map((item) => (
+          <div key={item.value} className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
+            <p className="text-2xl font-bold text-indigo-700">{item.value}</p>
+            <p className="mt-1 text-sm text-slate-600">{item.text}</p>
+          </div>
+        ))}
+      </section>
+
       <section className="py-12 grid sm:grid-cols-3 gap-6">
         {[
           {

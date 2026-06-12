@@ -111,14 +111,15 @@ file** for where the previous run left off.
 - Email delivery via Resend when `RESEND_API_KEY` is set (outbox always
   written as audit log); transactional emails: invite, offer received (buyer),
   offer accepted (supplier)
+- Marketing pages: `/pricing` (Alap vs Pro tiers + FAQ; checkout not wired
+  yet), `/terms` and `/privacy` placeholders, footer links, landing value props
 - English codebase with Hungarian user-facing copy (see hard rule 1)
 
 ### Backlog (priority order — pick from the top)
 
 | # | Item | Scope hint |
 |---|------|-----------|
-| P2 | Landing + marketing pages | Hero, value props, how-it-works, category cards, `/pricing`, `/terms`, `/privacy` placeholders, footer, CTAs |
-| P3 | Stripe subscriptions (test mode) | FREE (3 active RFQs, 5 invites/RFQ) vs PRO; `Company.plan` + Stripe fields; `/pricing` checkout; webhook handler; `src/lib/limits.ts` enforced in actions |
+| P3 | Stripe subscriptions (test mode) | FREE (3 active RFQs, 5 invites/RFQ) vs PRO; `Company.plan` + Stripe fields; checkout from `/pricing` (tiers already shown there); webhook handler; `src/lib/limits.ts` enforced in actions |
 | P4 | Search / filter / pagination | `/dashboard` + `/supplier` + `/supplier/opportunities`, server-side via `searchParams` |
 | P5 | Notifications | `Notification` model, nav badge, `/notifications`, notify on offer received / accepted / new matching RFQ; welcome emails on registration |
 | P6 | Admin panel | `User.role = "ADMIN"`, `/admin` stats, users/RFQs/suppliers lists, soft-deactivate users |
@@ -155,7 +156,14 @@ file** for where the previous run left off.
      failure never breaks the flow). Added offer-received (buyer) and
      offer-accepted (supplier) transactional emails, wired into
      `submitOfferAction` and `acceptOfferAction`.
+  4. P2 — marketing pages: `/pricing` (Alap 0 Ft vs Pro 4 990 Ft/hó, FAQ,
+     CTAs), `/terms` + `/privacy` placeholder legal pages (flagged as drafts
+     pending counsel review), footer links, pricing nav link for visitors,
+     value-prop band on the landing page.
 - **Verified:** `npm run build`, `npm run lint`, `npm run smoke` (8/8 incl.
-  HTTP checks) green; all three email templates exercised against the outbox.
-- **Next step:** P2 — landing + marketing pages (hero, pricing, terms/privacy
-  placeholders). Note: welcome emails were folded into P5.
+  HTTP checks) green; all new routes render 200; all three email templates
+  exercised against the outbox.
+- **Next step:** P3 — Stripe subscriptions in TEST MODE: `Company.plan` +
+  Stripe fields, checkout from `/pricing`, webhook handler,
+  `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in
+  `createRfqAction` / `sendRfqAction`. Welcome emails were folded into P5.

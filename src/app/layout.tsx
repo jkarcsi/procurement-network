@@ -78,6 +78,9 @@ export default async function RootLayout({
                 </form>
               ) : (
                 <>
+                  <Link href="/pricing" className="text-slate-600 hover:text-indigo-700">
+                    Árak
+                  </Link>
                   <Link href="/login" className="text-slate-600 hover:text-indigo-700">
                     Belépés
                   </Link>
@@ -94,9 +97,19 @@ export default async function RootLayout({
         </header>
         <main className="flex-1">{children}</main>
         <footer className="border-t border-slate-200 bg-white">
-          <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-slate-400 flex justify-between">
-            <span>Procura MVP – demo környezet</span>
-            <span>Beachhead: facility + compliance szolgáltatások</span>
+          <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-slate-400 flex flex-col sm:flex-row gap-2 justify-between">
+            <span>© Procura – AI-támogatott B2B beszerzési hálózat</span>
+            <span className="flex gap-4">
+              <Link href="/pricing" className="hover:text-indigo-700">
+                Árak
+              </Link>
+              <Link href="/terms" className="hover:text-indigo-700">
+                ÁSZF
+              </Link>
+              <Link href="/privacy" className="hover:text-indigo-700">
+                Adatvédelem
+              </Link>
+            </span>
           </div>
         </footer>
       </body>
