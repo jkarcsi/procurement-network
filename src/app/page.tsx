@@ -1,9 +1,20 @@
 import Link from "next/link";
 import { CATEGORIES } from "@/lib/taxonomy";
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ deleted?: string }>;
+}) {
+  const { deleted } = await searchParams;
   return (
     <div className="max-w-6xl mx-auto px-4">
+      {deleted && (
+        <div className="mt-6 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg p-3 text-center">
+          A fiókodat töröltük, a személyes adataidat eltávolítottuk. Köszönjük, hogy a Procurát
+          használtad!
+        </div>
+      )}
       <section className="py-16 text-center">
         <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 leading-tight">
           Egy mondat. <span className="text-indigo-600">Tíz releváns ajánlat.</span>

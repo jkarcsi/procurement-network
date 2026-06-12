@@ -33,9 +33,9 @@ product measurably closer to that goal and leave the repository green
 - [x] Rate limiting and abuse protection on auth and public endpoints
 - [x] Automated tests (vitest: rate limit, credits incl. idempotency, plan limits, matching); smoke covers discovery + HTTP
 - [x] Production deployment story (Dockerfile, CI, documented env vars, Postgres-ready)
-- [~] Error tracking and basic product analytics (analytics DONE: PostHog capture API, opt-in, no SDK; Sentry error tracking still open)
-- [ ] Legal sign-off: terms + privacy reviewed by counsel, GDPR records
-      (processor list incl. LLM provider and email provider), data export/delete
+- [x] Error tracking and basic product analytics (PostHog capture API + `onRequestError` instrumentation with optional ERROR_WEBHOOK_URL forwarding; both opt-in, no SDK)
+- [~] Legal sign-off: GDPR data export + account deletion DONE; terms +
+      privacy counsel review and consent banner still open
 - [ ] Audit completeness: every business mutation leaves an AuditLog row;
       credit moves leave CreditTransaction rows
 - [ ] Empty/loading/error states everywhere; responsive, Revolut-grade UI polish
@@ -148,14 +148,13 @@ file** for where the previous run left off.
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
 | P11 | Mobile app (Expo) | React Native app in `mobile/` on the public API: sign-in (passkey/biometric via `expo-local-authentication`), RFQ list/detail, offer review, push notifications; Revolut-grade navigation and polish |
-| P13 | Error tracking | Sentry (or comparable) for server errors, opt-in via SENTRY_DSN; analytics half is done (src/lib/analytics.ts) |
 | P14 | File attachments | `Attachment` model, local `/uploads` in dev, 10 MB cap, PDF/DOCX/XLSX/PNG/JPG |
 | P15 | Supplier directory + reviews | `/suppliers` browse/filter, invite-to-RFQ; buyer rates supplier after DECIDED, rating feeds matching (≤5 pts) |
 | P16 | RFQ Q&A thread | Registered suppliers ask clarifying questions on an invite; buyer answers on the RFQ page; thread visible to all invitees; recurring questions feed back into the category's clarify-question template (taxonomy + Category table) |
 | P17 | Supplier monetization | Offer quota: first X offers per supplier free, then registration + paid package required (keep one-click reply for the free quota); paid boost products (e.g. priority placement in the shortlist, marked as sponsored to keep ranking trust) |
 | P18 | Calendar | Deadlines + fulfillment dates view for both sides, reminders for recurring services (e.g. quarterly maintenance), optional mutual availability/booking slots |
 | P19 | Escrow payments | Deposit/advance paid through Procura and held until fulfilment, then released/refunded (Stripe Connect separate-charges-and-transfers; NOTE: payment-institution licensing/legal review required before launch) |
-| P20 | Legal & data rights | Counsel-reviewed terms/privacy, GDPR data export + account deletion flows, cookie/consent banner if analytics added |
+| P20 | Legal sign-off | Counsel-reviewed terms/privacy, consent banner if client-side analytics is added; data export + deletion are DONE |
 
 ### Demo accounts (seeded)
 
@@ -168,6 +167,27 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 12
+
+- **Shipped (P13 part 2):** Server error tracking without an SDK —
+  `src/instrumentation.ts` `onRequestError` logs every captured server
+  error in structured form and optionally forwards JSON to
+  `ERROR_WEBHOOK_URL`; `global-error.tsx` gives a friendly Hungarian
+  last-resort screen.
+- **Shipped (P20 data rights):** GDPR export — `/api/account/export`
+  downloads everything stored about the user/company as JSON (passkey/
+  API-key metadata only, no secrets). Account deletion on `/account`:
+  email-confirmation gate, deletes passkeys + notifications, anonymizes
+  the user (email/name/password hash, active=false → live sessions die),
+  audit log entry, goodbye banner. Business records retained anonymized
+  per terms.
+- **Verified:** build, lint, tests (9/9), smoke (9/9); live: export 200
+  with attachment header + 401 unauthenticated, anonymized user's
+  session rejected (307).
+- **Next step:** P11 Expo mobile app skeleton (v1 API is ready), or the
+  final UI-polish pass; counsel review of terms/privacy stays a human
+  task before launch.
 
 ### 2026-06-12 — run 11
 

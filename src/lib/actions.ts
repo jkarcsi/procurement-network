@@ -701,6 +701,37 @@ export async function deleteApiKeyAction(formData: FormData) {
   redirect("/account");
 }
 
+// GDPR erasure: personal data is removed/anonymized immediately; business
+// records (RFQs, offers, audit trail) are retained per the terms, detached
+// from the person via anonymization.
+export async function deleteAccountAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user) redirect("/login?next=/account");
+
+  const confirmation = String(formData.get("confirmEmail") ?? "").trim().toLowerCase();
+  if (confirmation !== user.email) {
+    redirect(`/account?error=${encodeURIComponent("A megerősítéshez írd be pontosan a fiók e-mail címét.")}`);
+  }
+
+  await db.passkey.deleteMany({ where: { userId: user.id } });
+  await db.notification.deleteMany({ where: { userId: user.id } });
+  await db.user.update({
+    where: { id: user.id },
+    data: {
+      email: `deleted-${user.id}@anonim.procura.hu`,
+      name: "Törölt felhasználó",
+      passwordHash: crypto.randomBytes(32).toString("hex"),
+      active: false,
+    },
+  });
+  await db.auditLog.create({
+    data: { actor: `deleted-${user.id}`, event: "ACCOUNT_DELETED", meta: user.role },
+  });
+
+  await destroySession();
+  redirect("/?deleted=1");
+}
+
 // ---------- Account / passkeys ----------
 
 export async function deletePasskeyAction(formData: FormData) {
