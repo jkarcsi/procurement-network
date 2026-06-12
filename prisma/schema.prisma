@@ -12,7 +12,8 @@ model User {
   email        String   @unique
   passwordHash String
   name         String
-  role         String // "BUYER" | "SUPPLIER"
+  role         String // "BUYER" | "SUPPLIER" | "ADMIN"
+  active       Boolean  @default(true) // soft-deactivate: inactive users cannot sign in
   companyId    String?
   company      Company? @relation(fields: [companyId], references: [id])
   passkeys     Passkey[]

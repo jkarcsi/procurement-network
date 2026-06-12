@@ -150,9 +150,22 @@ async function main() {
     });
   }
 
+  // Admin account
+  await db.user.upsert({
+    where: { email: "admin@procura.hu" },
+    update: {},
+    create: {
+      email: "admin@procura.hu",
+      name: "Procura Admin",
+      passwordHash: await bcrypt.hash("admin1234", 10),
+      role: "ADMIN",
+    },
+  });
+
   console.log("Seed done.");
   console.log("Demo buyer:    demo@vevo.hu / demo1234");
   console.log("Demo supplier: demo@beszallito.hu / demo1234");
+  console.log("Demo admin:    admin@procura.hu / admin1234");
 }
 
 main()

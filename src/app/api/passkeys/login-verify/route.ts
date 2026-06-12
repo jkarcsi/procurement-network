@@ -16,6 +16,7 @@ export async function POST(req: Request) {
     include: { user: true },
   });
   if (!passkey) return Response.json({ error: "unknown credential" }, { status: 400 });
+  if (!passkey.user.active) return Response.json({ error: "account disabled" }, { status: 403 });
 
   let verification;
   try {

@@ -29,7 +29,7 @@ product measurably closer to that goal and leave the repository green
       Native app on the public API, with `expo-local-authentication` biometrics
 - [x] Search, filtering, and pagination on every list view
 - [x] In-app + email notifications for the core loop events
-- [ ] Admin panel (users, RFQs, suppliers, moderation)
+- [x] Admin panel (users, RFQs, suppliers, credit ledger, moderation)
 - [ ] Rate limiting and abuse protection on auth and public endpoints
 - [ ] Automated tests for matching + offer + credit flows; smoke covers the loop
 - [ ] Production deployment story (Dockerfile, CI, documented env vars, Postgres-ready)
@@ -147,7 +147,6 @@ file** for where the previous run left off.
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
-| P7 | Admin panel | `User.role = "ADMIN"`, `/admin` stats, users/RFQs/suppliers lists, credit ledger view, soft-deactivate users |
 | P8 | Rate limiting | In-memory limiter in `src/lib/rateLimit.ts`; login, RFQ creation, offer submission |
 | P9 | Tests | Unit tests for `matching.ts` scoring and `credits.ts` (vitest); extend smoke to offer/accept/decline + credit charge flows |
 | P10 | Public API v1 | `/api/v1/*` with hashed API keys, OpenAPI JSON — foundation for the mobile app |
@@ -168,10 +167,28 @@ file** for where the previous run left off.
 |---|---|---|
 | Buyer | `demo@vevo.hu` | `demo1234` |
 | Supplier (CleanPro Facility Kft.) | `demo@beszallito.hu` | `demo1234` |
+| Admin | `admin@procura.hu` | `admin1234` |
 
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 8
+
+- **Shipped (P7):** Admin panel — `User.role` gains "ADMIN" and
+  `User.active` (soft-deactivate). `requireAdmin()` in `src/lib/admin.ts`,
+  called by every `/admin` page (layout only renders tabs). Pages:
+  `/admin` (stats incl. credits bought/used, RFQs by status),
+  `/admin/users` (suspend/reactivate with audit log; admin can't suspend
+  self), `/admin/rfqs` (status filter), `/admin/suppliers`,
+  `/admin/credits` (ledger). Seeded admin: admin@procura.hu / admin1234.
+  Deactivated users are rejected by `getSessionUser` (live cookies die
+  immediately), password login, and passkey login.
+- **Verified:** build, lint, smoke (9/9) green; HTTP checks: anon and
+  buyer blocked from /admin, all five pages 200 as admin, deactivated
+  user's live session rejected.
+- **Next step:** P8 — rate limiting (`src/lib/rateLimit.ts`; login, RFQ
+  creation, offer submission), then P9 tests.
 
 ### 2026-06-12 — run 7
 

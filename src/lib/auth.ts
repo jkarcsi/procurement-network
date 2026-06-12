@@ -34,8 +34,11 @@ export async function getSessionUser() {
   const [userId, expires, sig] = parts;
   if (sign(`${userId}.${expires}`) !== sig) return null;
   if (Number(expires) < Date.now()) return null;
-  return db.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id: userId },
     include: { company: { include: { supplierProfile: true } } },
   });
+  // Soft-deactivated users lose access immediately, even with a live cookie
+  if (user && !user.active) return null;
+  return user;
 }

@@ -57,12 +57,12 @@ export async function loginAction(formData: FormData) {
   const next = String(formData.get("next") ?? "");
 
   const user = await db.user.findUnique({ where: { email } });
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
     redirect("/login?error=" + encodeURIComponent("Hibás e-mail cím vagy jelszó.") + (next ? `&next=${encodeURIComponent(next)}` : ""));
   }
   await createSession(user.id);
   if (next && next.startsWith("/")) redirect(next);
-  redirect(user.role === "SUPPLIER" ? "/supplier" : "/dashboard");
+  redirect(user.role === "SUPPLIER" ? "/supplier" : user.role === "ADMIN" ? "/admin" : "/dashboard");
 }
 
 export async function logoutAction() {
@@ -632,6 +632,31 @@ export async function markAllNotificationsReadAction() {
   revalidatePath("/notifications");
   revalidatePath("/", "layout");
   redirect("/notifications");
+}
+
+// ---------- Admin ----------
+
+export async function toggleUserActiveAction(formData: FormData) {
+  const admin = await getSessionUser();
+  if (!admin || admin.role !== "ADMIN") redirect("/login?next=/admin");
+
+  const userId = String(formData.get("userId") ?? "");
+  if (userId === admin.id) redirect("/admin/users");
+
+  const target = await db.user.findUnique({ where: { id: userId } });
+  if (target) {
+    await db.user.update({ where: { id: userId }, data: { active: !target.active } });
+    await db.auditLog.create({
+      data: {
+        actor: admin.email,
+        event: target.active ? "USER_DEACTIVATED" : "USER_REACTIVATED",
+        meta: target.email,
+      },
+    });
+  }
+
+  revalidatePath("/admin/users");
+  redirect("/admin/users");
 }
 
 // ---------- Account / passkeys ----------
