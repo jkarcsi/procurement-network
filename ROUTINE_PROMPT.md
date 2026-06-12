@@ -108,17 +108,19 @@ file** for where the previous run left off.
 - Open opportunities (`/supplier/opportunities`): suppliers self-apply to
   matching live RFQs
 - Demo email outbox (`/outbox`), `npm run smoke` smoke test
+- Email delivery via Resend when `RESEND_API_KEY` is set (outbox always
+  written as audit log); transactional emails: invite, offer received (buyer),
+  offer accepted (supplier)
 - English codebase with Hungarian user-facing copy (see hard rule 1)
 
 ### Backlog (priority order — pick from the top)
 
 | # | Item | Scope hint |
 |---|------|-----------|
-| P1 | Real email delivery (Resend) | `src/lib/email.ts` provider switch on `RESEND_API_KEY`, outbox stays as dev fallback; invite / offer-received / offer-accepted / welcome templates |
 | P2 | Landing + marketing pages | Hero, value props, how-it-works, category cards, `/pricing`, `/terms`, `/privacy` placeholders, footer, CTAs |
 | P3 | Stripe subscriptions (test mode) | FREE (3 active RFQs, 5 invites/RFQ) vs PRO; `Company.plan` + Stripe fields; `/pricing` checkout; webhook handler; `src/lib/limits.ts` enforced in actions |
 | P4 | Search / filter / pagination | `/dashboard` + `/supplier` + `/supplier/opportunities`, server-side via `searchParams` |
-| P5 | Notifications | `Notification` model, nav badge, `/notifications`, notify on offer received / accepted / new matching RFQ |
+| P5 | Notifications | `Notification` model, nav badge, `/notifications`, notify on offer received / accepted / new matching RFQ; welcome emails on registration |
 | P6 | Admin panel | `User.role = "ADMIN"`, `/admin` stats, users/RFQs/suppliers lists, soft-deactivate users |
 | P7 | Rate limiting | In-memory limiter in `src/lib/rateLimit.ts`; login, RFQ creation, offer submission |
 | P8 | Tests | Unit tests for `matching.ts` scoring (vitest); extend smoke to offer/accept/decline flows |
@@ -142,10 +144,18 @@ file** for where the previous run left off.
 
 ### 2026-06-12 — run 1
 
-- **Shipped:** Replaced the deleted routine prompt with this file. Migrated the
-  codebase to English (comments, docs, category slugs, console output, AI
-  prompt instructions, smoke test) while keeping all user-facing copy
-  Hungarian (UI, emails, AI output, matching reasons), as the product targets
-  the Hungarian market.
-- **Verified:** `npm run build`, `npm run lint`, `npm run smoke` green.
-- **Next step:** P1 — real email delivery via Resend with outbox fallback.
+- **Shipped:**
+  1. Replaced the deleted routine prompt with this file.
+  2. Migrated the codebase to English (comments, docs, category slugs, console
+     output, AI prompt instructions, smoke test) while keeping all user-facing
+     copy Hungarian (UI, emails, AI output, matching reasons), as the product
+     targets the Hungarian market.
+  3. P1 — email delivery: `src/lib/email.ts` now sends via Resend when
+     `RESEND_API_KEY` is set (outbox always written as audit log; provider
+     failure never breaks the flow). Added offer-received (buyer) and
+     offer-accepted (supplier) transactional emails, wired into
+     `submitOfferAction` and `acceptOfferAction`.
+- **Verified:** `npm run build`, `npm run lint`, `npm run smoke` (8/8 incl.
+  HTTP checks) green; all three email templates exercised against the outbox.
+- **Next step:** P2 — landing + marketing pages (hero, pricing, terms/privacy
+  placeholders). Note: welcome emails were folded into P5.

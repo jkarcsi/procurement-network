@@ -8,7 +8,7 @@ import { db } from "./db";
 import { createSession, destroySession, getSessionUser } from "./auth";
 import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } from "./ai";
 import { shortlistSuppliers } from "./matching";
-import { sendRfqInviteEmail } from "./email";
+import { sendRfqInviteEmail, sendOfferReceivedEmail, sendOfferAcceptedEmail } from "./email";
 
 // ---------- Auth ----------
 
@@ -361,6 +361,20 @@ export async function submitOfferAction(formData: FormData) {
     },
   });
 
+  // Notify the buyer (RFQ creator, or any user of the buyer company)
+  const buyerUser = invite.rfq.createdById
+    ? await db.user.findUnique({ where: { id: invite.rfq.createdById } })
+    : await db.user.findFirst({ where: { companyId: invite.rfq.companyId } });
+  if (buyerUser) {
+    await sendOfferReceivedEmail({
+      to: buyerUser.email,
+      rfqId: invite.rfqId,
+      rfqTitle: invite.rfq.title,
+      supplierCompany: companyName,
+      priceText: `${priceNet.toLocaleString("hu-HU")} Ft (${priceUnit})`,
+    });
+  }
+
   revalidatePath(`/rfq/${invite.rfqId}`);
   redirect(`/r/${token}?ok=1`);
 }
@@ -388,7 +402,10 @@ export async function acceptOfferAction(formData: FormData) {
   if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
 
   const offerId = String(formData.get("offerId") ?? "");
-  const offer = await db.offer.findUnique({ where: { id: offerId }, include: { rfq: true } });
+  const offer = await db.offer.findUnique({
+    where: { id: offerId },
+    include: { rfq: { include: { company: true } }, invite: true },
+  });
   if (!offer || offer.rfq.companyId !== user.companyId) redirect("/dashboard");
 
   await db.offer.update({ where: { id: offer.id }, data: { status: "ACCEPTED" } });
@@ -404,6 +421,15 @@ export async function acceptOfferAction(formData: FormData) {
       event: "OFFER_ACCEPTED",
       meta: `${offer.companyName}: ${offer.priceNet} Ft (${offer.priceUnit})`,
     },
+  });
+
+  await sendOfferAcceptedEmail({
+    to: offer.contactEmail,
+    rfqId: offer.rfqId,
+    rfqTitle: offer.rfq.title,
+    supplierCompany: offer.companyName,
+    buyerCompany: offer.rfq.company.name,
+    token: offer.invite?.token ?? null,
   });
 
   revalidatePath(`/rfq/${offer.rfqId}`);

@@ -45,12 +45,17 @@ JSON output). **The full loop works without a key too**: keyword-based
 category/region detection and per-category template questions take over the
 AI's role.
 
-## Demo emails
+## Email delivery
 
-Instead of real email delivery, outgoing RFQ invites land on the **Outbox**
-page (`/outbox`) – open the supplier reply links (`/r/<token>`) from there.
-Reply links work **without registration** (per the report's "one-click reply,
-optional registration" principle).
+Set `RESEND_API_KEY` (and optionally `EMAIL_FROM`) in `.env` for real email
+delivery via [Resend](https://resend.com). Without a key, emails only land on
+the **Outbox** page (`/outbox`) – open the supplier reply links (`/r/<token>`)
+from there. The outbox is always written, so with Resend enabled it doubles as
+a sent-mail audit log.
+
+Transactional emails: RFQ invite (suppliers), offer received (buyer), offer
+accepted (supplier). Reply links work **without registration** (per the
+report's "one-click reply, optional registration" principle).
 
 ## Main routes
 
