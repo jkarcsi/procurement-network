@@ -21,7 +21,7 @@ product measurably closer to that goal and leave the repository green
 - [x] Credit-based monetization of analysis features (ledger, balance, packages)
 - [x] Stripe **test mode** checkout for credit packages (webhook-granted,
       idempotent; demo grant without keys)
-- [ ] Stripe Pro subscription + plan limits enforced server-side
+- [x] Stripe Pro subscription + plan limits enforced server-side
       (`src/lib/limits.ts` in `createRfqAction`/`sendRfqAction`)
 - [x] Biometric sign-in: passkeys/WebAuthn on web+PWA (Face ID / Touch ID /
       fingerprint via platform authenticators)
