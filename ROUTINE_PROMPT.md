@@ -33,7 +33,7 @@ product measurably closer to that goal and leave the repository green
 - [x] Rate limiting and abuse protection on auth and public endpoints
 - [x] Automated tests (vitest: rate limit, credits incl. idempotency, plan limits, matching); smoke covers discovery + HTTP
 - [x] Production deployment story (Dockerfile, CI, documented env vars, Postgres-ready)
-- [ ] Error tracking and basic product analytics (opt-in via env vars)
+- [~] Error tracking and basic product analytics (analytics DONE: PostHog capture API, opt-in, no SDK; Sentry error tracking still open)
 - [ ] Legal sign-off: terms + privacy reviewed by counsel, GDPR records
       (processor list incl. LLM provider and email provider), data export/delete
 - [ ] Audit completeness: every business mutation leaves an AuditLog row;
@@ -148,7 +148,7 @@ file** for where the previous run left off.
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
 | P11 | Mobile app (Expo) | React Native app in `mobile/` on the public API: sign-in (passkey/biometric via `expo-local-authentication`), RFQ list/detail, offer review, push notifications; Revolut-grade navigation and polish |
-| P13 | Monitoring | Sentry + PostHog, both strictly opt-in via env vars |
+| P13 | Error tracking | Sentry (or comparable) for server errors, opt-in via SENTRY_DSN; analytics half is done (src/lib/analytics.ts) |
 | P14 | File attachments | `Attachment` model, local `/uploads` in dev, 10 MB cap, PDF/DOCX/XLSX/PNG/JPG |
 | P15 | Supplier directory + reviews | `/suppliers` browse/filter, invite-to-RFQ; buyer rates supplier after DECIDED, rating feeds matching (≤5 pts) |
 | P16 | RFQ Q&A thread | Registered suppliers ask clarifying questions on an invite; buyer answers on the RFQ page; thread visible to all invitees; recurring questions feed back into the category's clarify-question template (taxonomy + Category table) |
@@ -168,6 +168,24 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 11
+
+- **Reviewed run 10 (API + deployment):** found and fixed two API bugs —
+  rate-limit hits returned 401 instead of 429 (authenticateApiKey now
+  returns a discriminated result), and unvalidated `deadline` caused a
+  500 (now 400). Verified live: 61st request/min → 429, bad date → 400.
+  Docker daemon is unavailable in this sandbox; Dockerfile passed static
+  review (prisma CLI present in runner, dynamic pages don't touch DB at
+  build) but the image build stays queued for first real deploy.
+- **Shipped (P13 analytics half):** `src/lib/analytics.ts` — opt-in
+  PostHog capture via plain fetch (no SDK), silent failure; funnel
+  events wired: user_registered, rfq_created, rfq_sent, offer_submitted,
+  offer_accepted, credits_purchased, pro_upgraded. Env:
+  POSTHOG_API_KEY/POSTHOG_HOST.
+- **Verified:** build, lint, tests (9/9), smoke green.
+- **Next step:** P11 Expo mobile app skeleton or P13 Sentry error
+  tracking; then legal/data-rights track (P20) and UI polish.
 
 ### 2026-06-12 — run 10
 

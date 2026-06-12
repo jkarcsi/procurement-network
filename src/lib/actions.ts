@@ -15,6 +15,7 @@ import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PAC
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit, checkInviteLimit } from "./limits";
 import { rateLimit, RATE_LIMIT_MESSAGE } from "./rateLimit";
+import { track } from "./analytics";
 
 async function clientIp(): Promise<string> {
   const fwd = (await headers()).get("x-forwarded-for");
@@ -57,6 +58,7 @@ export async function registerAction(formData: FormData) {
     },
   });
   await sendWelcomeEmail({ to: email, name, role });
+  await track("user_registered", user.id, { role });
   await createSession(user.id);
   redirect(role === "SUPPLIER" ? "/supplier/profile" : "/dashboard");
 }
@@ -148,6 +150,7 @@ export async function createRfqAction(payload: {
     },
   });
 
+  await track("rfq_created", user.id, { categoryId: category?.id ?? "none" });
   redirect(`/rfq/${rfq.id}`);
 }
 
@@ -262,6 +265,9 @@ export async function sendRfqAction(formData: FormData) {
       event: "RFQ_SENT",
       meta: `${supplierIds.length} hálózati + ${extraEmails.length} külső beszállító`,
     },
+  });
+  await track("rfq_sent", user.id, {
+    invites: supplierIds.length + extraEmails.length,
   });
 
   revalidatePath(`/rfq/${rfq.id}`);
@@ -437,6 +443,8 @@ export async function submitOfferAction(formData: FormData) {
     });
   }
 
+  await track("offer_submitted", contactEmail, { source: invite.source });
+
   revalidatePath(`/rfq/${invite.rfqId}`);
   redirect(`/r/${token}?ok=1`);
 }
@@ -506,6 +514,8 @@ export async function acceptOfferAction(formData: FormData) {
       });
     }
   }
+
+  await track("offer_accepted", user.id, { priceNet: offer.priceNet });
 
   revalidatePath(`/rfq/${offer.rfqId}`);
   redirect(`/rfq/${offer.rfqId}`);
@@ -594,6 +604,7 @@ export async function purchaseCreditsAction(formData: FormData) {
     "PURCHASE",
     `${pkg.name} (${pkg.credits} kredit) – demo fizetés`,
   );
+  await track("credits_purchased", user.id, { packageId: pkg.id, credits: pkg.credits, mode: "demo" });
 
   revalidatePath("/credits");
   redirect("/credits?ok=1");
@@ -633,6 +644,7 @@ export async function upgradeToProAction() {
   }
 
   await db.company.update({ where: { id: user.companyId }, data: { plan: "PRO" } });
+  await track("pro_upgraded", user.id, { mode: "demo" });
   revalidatePath("/pricing");
   redirect("/pricing?pro=1");
 }
