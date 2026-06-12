@@ -30,7 +30,7 @@ product measurably closer to that goal and leave the repository green
 - [x] Search, filtering, and pagination on every list view
 - [x] In-app + email notifications for the core loop events
 - [x] Admin panel (users, RFQs, suppliers, credit ledger, moderation)
-- [ ] Rate limiting and abuse protection on auth and public endpoints
+- [x] Rate limiting and abuse protection on auth and public endpoints
 - [ ] Automated tests for matching + offer + credit flows; smoke covers the loop
 - [ ] Production deployment story (Dockerfile, CI, documented env vars, Postgres-ready)
 - [ ] Error tracking and basic product analytics (opt-in via env vars)
@@ -147,7 +147,6 @@ file** for where the previous run left off.
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
-| P8 | Rate limiting | In-memory limiter in `src/lib/rateLimit.ts`; login, RFQ creation, offer submission |
 | P9 | Tests | Unit tests for `matching.ts` scoring and `credits.ts` (vitest); extend smoke to offer/accept/decline + credit charge flows |
 | P10 | Public API v1 | `/api/v1/*` with hashed API keys, OpenAPI JSON — foundation for the mobile app |
 | P11 | Mobile app (Expo) | React Native app in `mobile/` on the public API: sign-in (passkey/biometric via `expo-local-authentication`), RFQ list/detail, offer review, push notifications; Revolut-grade navigation and polish |
@@ -172,6 +171,20 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 9
+
+- **Shipped (P8):** Rate limiting — `src/lib/rateLimit.ts` (in-memory
+  sliding window, per-instance; swap for Redis/KV when scaling out,
+  crude global cap against unbounded growth). Applied: login 5/5min per
+  IP+email, registration 5/hour per IP, offer submission 5/hour per
+  token, clarify (model-backed step) 20/hour per user. Hungarian
+  rate-limit error shown via existing error banners.
+- **Verified:** build, lint, smoke green; limiter unit-checked (blocks
+  6th call, key isolation, window expiry).
+- **Next step:** P9 — tests (vitest units for matching/credits/limits,
+  extend smoke to offer/accept/decline + credit charge), then P10 public
+  API.
 
 ### 2026-06-12 — run 8
 

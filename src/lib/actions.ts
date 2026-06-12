@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
@@ -13,6 +14,12 @@ import { notifyUser, notifyCompanyUsers } from "./notifications";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit, checkInviteLimit } from "./limits";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "./rateLimit";
+
+async function clientIp(): Promise<string> {
+  const fwd = (await headers()).get("x-forwarded-for");
+  return fwd?.split(",")[0]?.trim() || "local";
+}
 
 // ---------- Auth ----------
 
@@ -23,6 +30,9 @@ export async function registerAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const role = formData.get("role") === "SUPPLIER" ? "SUPPLIER" : "BUYER";
 
+  if (!rateLimit(`register:${await clientIp()}`, 5, 60 * 60 * 1000)) {
+    redirect("/register?error=" + encodeURIComponent(RATE_LIMIT_MESSAGE));
+  }
   if (!name || !companyName || !email || password.length < 8) {
     redirect("/register?error=" + encodeURIComponent("Minden mező kötelező, a jelszó legalább 8 karakter."));
   }
@@ -56,6 +66,10 @@ export async function loginAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "");
 
+  if (!rateLimit(`login:${await clientIp()}:${email}`, 5, 5 * 60 * 1000)) {
+    redirect("/login?error=" + encodeURIComponent(RATE_LIMIT_MESSAGE) + (next ? `&next=${encodeURIComponent(next)}` : ""));
+  }
+
   const user = await db.user.findUnique({ where: { email } });
   if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
     redirect("/login?error=" + encodeURIComponent("Hibás e-mail cím vagy jelszó.") + (next ? `&next=${encodeURIComponent(next)}` : ""));
@@ -75,6 +89,8 @@ export async function logoutAction() {
 export async function clarifyRfqAction(intakeText: string): Promise<ClarifyResult | { error: string }> {
   const user = await getSessionUser();
   if (!user || user.role !== "BUYER") return { error: "Bejelentkezés szükséges (vevői fiókkal)." };
+  // Caps cost of the model-backed clarify step
+  if (!rateLimit(`clarify:${user.id}`, 20, 60 * 60 * 1000)) return { error: RATE_LIMIT_MESSAGE };
   const text = intakeText.trim();
   if (text.length < 10) return { error: "Írd le legalább egy mondatban, mire van szükséged." };
   return clarifyIntake(text);
@@ -338,6 +354,9 @@ export async function joinOpenRfqAction(formData: FormData) {
 
 export async function submitOfferAction(formData: FormData) {
   const token = String(formData.get("token") ?? "");
+  if (!rateLimit(`offer:${token}`, 5, 60 * 60 * 1000)) {
+    redirect(`/r/${token}?error=${encodeURIComponent(RATE_LIMIT_MESSAGE)}`);
+  }
   const invite = await db.rfqInvite.findUnique({
     where: { token },
     include: { rfq: true, supplier: { include: { company: true } } },
