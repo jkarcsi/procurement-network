@@ -16,6 +16,7 @@ Standing development brief for autonomous runs: ROUTINE_PROMPT.md.
 - `npx prisma db push` – sync schema into the SQLite DB (prisma/dev.db)
 - `npm run db:seed` – demo data (idempotent, upsert-based)
 - `npm run smoke` – smoke test (needs a seeded DB; HTTP checks if dev server runs)
+- `npm run test` – vitest unit suite (needs a seeded DB)
 
 ## Conventions and architecture
 

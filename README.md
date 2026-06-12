@@ -28,6 +28,7 @@ npm run dev             # http://localhost:3000
 
 ```bash
 npm run smoke           # needs a seeded DB; with `npm run dev` running it also does HTTP checks
+npm run test            # vitest unit suite (rate limit, credits, plan limits, matching)
 ```
 
 ### Demo accounts

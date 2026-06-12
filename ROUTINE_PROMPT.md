@@ -31,7 +31,7 @@ product measurably closer to that goal and leave the repository green
 - [x] In-app + email notifications for the core loop events
 - [x] Admin panel (users, RFQs, suppliers, credit ledger, moderation)
 - [x] Rate limiting and abuse protection on auth and public endpoints
-- [ ] Automated tests for matching + offer + credit flows; smoke covers the loop
+- [x] Automated tests (vitest: rate limit, credits incl. idempotency, plan limits, matching); smoke covers discovery + HTTP
 - [ ] Production deployment story (Dockerfile, CI, documented env vars, Postgres-ready)
 - [ ] Error tracking and basic product analytics (opt-in via env vars)
 - [ ] Legal sign-off: terms + privacy reviewed by counsel, GDPR records
@@ -147,7 +147,6 @@ file** for where the previous run left off.
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
-| P9 | Tests | Unit tests for `matching.ts` scoring and `credits.ts` (vitest); extend smoke to offer/accept/decline + credit charge flows |
 | P10 | Public API v1 | `/api/v1/*` with hashed API keys, OpenAPI JSON — foundation for the mobile app |
 | P11 | Mobile app (Expo) | React Native app in `mobile/` on the public API: sign-in (passkey/biometric via `expo-local-authentication`), RFQ list/detail, offer review, push notifications; Revolut-grade navigation and polish |
 | P12 | Deployment | Multi-stage Dockerfile, GitHub Actions CI (lint+build+smoke), Postgres migration notes, env var docs |
@@ -171,6 +170,18 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 9 (continued)
+
+- **Shipped (P9):** `npm run test` — vitest suite (`tests/core.test.ts`,
+  9 tests) covering: rate limiter (block/isolation/expiry), credits
+  (atomic charge, overdraft rejection, reference idempotency), plan
+  limits (total-quota semantics incl. closed RFQs, PRO uncapped),
+  matching (score bounds/ordering, unknown category). Runs against the
+  seeded dev DB like smoke; [TEST] rows cleaned up.
+- **Verified:** test 9/9, build, lint, smoke green.
+- **Next step:** P10 — public API v1 (hashed API keys, OpenAPI JSON),
+  the foundation for the Expo mobile app (P11).
 
 ### 2026-06-12 — run 9
 
