@@ -172,6 +172,18 @@ file** for where the previous run left off.
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
 
+### 2026-06-12 — run 3 (continued)
+
+- **Shipped:** FREE-tier limits enforced server-side: `Company.plan`
+  ("FREE"|"PRO"), `src/lib/limits.ts` (max 3 active RFQs, max 5 invites per
+  RFQ on FREE; PRO unlimited), enforced in `createRfqAction` (typed error
+  shown by the wizard) and `sendRfqAction` (redirect error banner).
+- **Verified:** build, lint, smoke green; limit checks exercised (4th active
+  RFQ blocked, 6th invite blocked, 5 allowed, PRO unlimited).
+- **Next step:** P3 remainder — Pro subscription checkout from `/pricing`
+  (`customer.subscription.*` webhooks set `Company.plan`), and an end-to-end
+  credits checkout test with `sk_test_` keys + `stripe listen`.
+
 ### 2026-06-12 — run 3
 
 - **Shipped:** Stripe test-mode checkout for credit packages:

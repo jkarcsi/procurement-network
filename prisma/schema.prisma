@@ -22,6 +22,7 @@ model Company {
   id              String           @id @default(cuid())
   name            String
   type            String // "BUYER" | "SUPPLIER"
+  plan            String           @default("FREE") // "FREE" | "PRO"
   creditBalance   Int              @default(0)
   users           User[]
   supplierProfile SupplierProfile?

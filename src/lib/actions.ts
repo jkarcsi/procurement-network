@@ -11,6 +11,7 @@ import { shortlistSuppliers } from "./matching";
 import { sendRfqInviteEmail, sendOfferReceivedEmail, sendOfferAcceptedEmail } from "./email";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
+import { checkRfqCreationLimit, checkInviteLimit } from "./limits";
 
 // ---------- Auth ----------
 
@@ -84,9 +85,12 @@ export async function createRfqAction(payload: {
   regionId: string | null;
   deadline: string | null;
   qa: QA[];
-}) {
+}): Promise<{ error: string } | void> {
   const user = await getSessionUser();
   if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
+
+  const limit = await checkRfqCreationLimit(user.companyId);
+  if (!limit.ok) return { error: limit.error };
 
   const category = payload.categoryId
     ? await db.category.findUnique({ where: { id: payload.categoryId } })
@@ -152,6 +156,11 @@ export async function sendRfqAction(formData: FormData) {
 
   if (supplierIds.length === 0 && extraEmails.length === 0) {
     redirect(`/rfq/${rfqId}?error=${encodeURIComponent("Válassz legalább egy beszállítót vagy adj meg e-mail címet.")}`);
+  }
+
+  const limit = await checkInviteLimit(user.companyId, supplierIds.length + extraEmails.length);
+  if (!limit.ok) {
+    redirect(`/rfq/${rfqId}?error=${encodeURIComponent(limit.error)}`);
   }
 
   const spec = rfq.spec ? (JSON.parse(rfq.spec) as { summary?: string }) : {};

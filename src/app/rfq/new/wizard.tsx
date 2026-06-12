@@ -52,7 +52,7 @@ export default function RfqWizard({
     setError(null);
     setLoading(true);
     try {
-      await createRfqAction({
+      const result = await createRfqAction({
         intakeText: text,
         title,
         categoryId: categoryId || null,
@@ -60,6 +60,11 @@ export default function RfqWizard({
         deadline: deadline || null,
         qa: clarify.questions.map((q, i) => ({ question: q, answer: answers[i] ?? "" })),
       });
+      if (result && "error" in result) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
     } catch (err) {
       // A successful redirect is also thrown as an "error" – let that one through.
       if (err && typeof err === "object" && "digest" in err) throw err;
