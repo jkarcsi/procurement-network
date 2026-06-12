@@ -1,5 +1,8 @@
-// Beachhead kategóriák (facility + compliance klaszter) és magyar régiók.
-// A seed és az AI-fallback is innen dolgozik.
+// Beachhead categories (facility + compliance cluster) and Hungarian regions.
+// Shared source for the seed and the AI fallback.
+// IDs/slugs are English (code-level); display names and clarifying questions
+// are Hungarian because the UI targets Hungarian SMEs. Keyword lists mix
+// Hungarian and English to match free-text buyer input.
 
 export type CategoryDef = {
   id: string;
@@ -10,9 +13,9 @@ export type CategoryDef = {
 
 export const CATEGORIES: CategoryDef[] = [
   {
-    id: "takaritas",
+    id: "cleaning",
     name: "Takarítás",
-    keywords: ["takarít", "tisztít", "higién", "irodatakar"],
+    keywords: ["takarít", "takarit", "tisztít", "tisztit", "higién", "irodatakar", "clean", "janitor"],
     clarifyQuestions: [
       "Mekkora a takarítandó terület (m²) és milyen típusú (iroda, üzem, raktár, üzlet)?",
       "Milyen gyakorisággal van szükség takarításra (napi, heti, alkalmi)?",
@@ -24,7 +27,7 @@ export const CATEGORIES: CategoryDef[] = [
   {
     id: "hvac",
     name: "HVAC / klíma karbantartás",
-    keywords: ["klíma", "klima", "hvac", "légkondi", "legkondi", "hűtés", "futes", "fűtés", "szellőz"],
+    keywords: ["klíma", "klima", "hvac", "légkondi", "legkondi", "hűtés", "hutes", "futes", "fűtés", "szellőz", "szelloz", "air condition", "cooling", "heating", "ventilat"],
     clarifyQuestions: [
       "Hány darab és milyen típusú klíma/HVAC berendezésről van szó?",
       "Telepítésre, karbantartásra vagy javításra van szükség?",
@@ -34,9 +37,9 @@ export const CATEGORIES: CategoryDef[] = [
     ],
   },
   {
-    id: "orzes-vedelem",
+    id: "security",
     name: "Őrzés-védelem",
-    keywords: ["őrzés", "orzes", "biztonsági", "biztonsag", "vagyonvéd", "vagyonved", "portaszolgálat", "portaszolgalat", "beléptet", "beleptet"],
+    keywords: ["őrzés", "orzes", "biztonsági", "biztonsag", "vagyonvéd", "vagyonved", "portaszolgálat", "portaszolgalat", "beléptet", "beleptet", "security", "guard"],
     clarifyQuestions: [
       "Milyen szolgáltatásra van szükség (élőerős őrzés, portaszolgálat, távfelügyelet, járőrözés)?",
       "Milyen időbeosztásban (0-24, éjszakai, hétvégi, munkaidőn kívüli)?",
@@ -46,9 +49,9 @@ export const CATEGORIES: CategoryDef[] = [
     ],
   },
   {
-    id: "munkavedelem",
+    id: "occupational-safety",
     name: "Munkavédelem",
-    keywords: ["munkavéd", "munkaved", "kockázatértékel", "kockazatertekel", "üzemorvos", "uzemorvos", "munkabiztons"],
+    keywords: ["munkavéd", "munkaved", "kockázatértékel", "kockazatertekel", "üzemorvos", "uzemorvos", "munkabiztons", "occupational safety", "workplace safety", "risk assessment"],
     clarifyQuestions: [
       "Hány munkavállalót érint a szolgáltatás, és milyen tevékenységi körben dolgoznak?",
       "Milyen feladatokra van szükség (kockázatértékelés, oktatás, szabályzatok, bejárások)?",
@@ -58,9 +61,9 @@ export const CATEGORIES: CategoryDef[] = [
     ],
   },
   {
-    id: "tuzvedelem",
+    id: "fire-safety",
     name: "Tűzvédelem",
-    keywords: ["tűzvéd", "tuzved", "tűzoltó", "tuzolto", "tűzjelz", "tuzjelz", "menekülés", "menekules"],
+    keywords: ["tűzvéd", "tuzved", "tűzoltó", "tuzolto", "tűzjelz", "tuzjelz", "menekülés", "menekules", "fire safety", "fire protection", "fire alarm", "extinguisher"],
     clarifyQuestions: [
       "Milyen szolgáltatásra van szükség (tűzvédelmi szabályzat, oktatás, eszköz-felülvizsgálat, tűzjelző karbantartás)?",
       "Mekkora az épület/telephely, és milyen funkciójú (iroda, üzem, raktár, vendéglátás)?",
@@ -72,7 +75,7 @@ export const CATEGORIES: CategoryDef[] = [
   {
     id: "it-support",
     name: "IT üzemeltetés / support",
-    keywords: ["it ", "informatik", "rendszergazda", "support", "szerver", "hálózat", "halozat", "microsoft 365", "laptop"],
+    keywords: ["it ", "it-", "informatik", "rendszergazda", "support", "szerver", "server", "hálózat", "halozat", "network", "microsoft 365", "laptop", "sysadmin", "helpdesk"],
     clarifyQuestions: [
       "Hány felhasználót / munkaállomást kell támogatni?",
       "Milyen rendszereket használtok (Microsoft 365, Google Workspace, saját szerver, felhő)?",

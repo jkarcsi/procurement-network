@@ -63,7 +63,7 @@ export async function logoutAction() {
   redirect("/");
 }
 
-// ---------- RFQ intake / létrehozás ----------
+// ---------- RFQ intake / creation ----------
 
 export async function clarifyRfqAction(intakeText: string): Promise<ClarifyResult | { error: string }> {
   const user = await getSessionUser();
@@ -125,7 +125,7 @@ export async function createRfqAction(payload: {
   redirect(`/rfq/${rfq.id}`);
 }
 
-// ---------- RFQ kiküldés ----------
+// ---------- RFQ send-out ----------
 
 export async function sendRfqAction(formData: FormData) {
   const user = await getSessionUser();
@@ -154,7 +154,7 @@ export async function sendRfqAction(formData: FormData) {
   const summary = spec.summary ?? rfq.intakeText;
   const deadlineStr = rfq.deadline ? rfq.deadline.toISOString().slice(0, 10) : null;
 
-  // Pontszámok újraszámítása az audit trail kedvéért
+  // Recompute scores for the audit trail
   const matches = rfq.categoryId
     ? await shortlistSuppliers(rfq.categoryId, rfq.regionId, 100)
     : [];
@@ -231,7 +231,7 @@ export async function sendRfqAction(formData: FormData) {
   redirect(`/rfq/${rfq.id}`);
 }
 
-// ---------- Beszállítói jelentkezés nyílt lehetőségre ----------
+// ---------- Supplier application to an open opportunity ----------
 
 export async function joinOpenRfqAction(formData: FormData) {
   const user = await getSessionUser();
@@ -297,7 +297,7 @@ export async function joinOpenRfqAction(formData: FormData) {
   redirect(`/r/${token}`);
 }
 
-// ---------- Beszállítói válasz (publikus, token alapú) ----------
+// ---------- Supplier reply (public, token-based) ----------
 
 export async function submitOfferAction(formData: FormData) {
   const token = String(formData.get("token") ?? "");
@@ -381,7 +381,7 @@ export async function declineInviteAction(formData: FormData) {
   redirect(`/r/${token}`);
 }
 
-// ---------- Vevői döntés ----------
+// ---------- Buyer decision ----------
 
 export async function acceptOfferAction(formData: FormData) {
   const user = await getSessionUser();
@@ -440,7 +440,7 @@ export async function compareOffersAction(formData: FormData) {
   redirect(`/rfq/${rfq.id}`);
 }
 
-// ---------- Beszállítói profil ----------
+// ---------- Supplier profile ----------
 
 export async function updateSupplierProfileAction(formData: FormData) {
   const user = await getSessionUser();

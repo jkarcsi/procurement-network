@@ -61,7 +61,7 @@ export default function RfqWizard({
         qa: clarify.questions.map((q, i) => ({ question: q, answer: answers[i] ?? "" })),
       });
     } catch (err) {
-      // A sikeres redirect is "hibaként" dobódik – azt hagyjuk továbbmenni.
+      // A successful redirect is also thrown as an "error" – let that one through.
       if (err && typeof err === "object" && "digest" in err) throw err;
       setError("Nem sikerült létrehozni az ajánlatkérést. Próbáld újra.");
       setLoading(false);

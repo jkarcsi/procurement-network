@@ -3,7 +3,7 @@ import { submitOfferAction, declineInviteAction } from "@/lib/actions";
 import { formatDate, formatHuf } from "@/lib/format";
 import type { RfqSpec } from "@/lib/ai";
 
-// Publikus, token-alapú beszállítói válaszoldal – regisztráció nélkül használható.
+// Public, token-based supplier reply page – usable without registration.
 export default async function SupplierReplyPage({
   params,
   searchParams,

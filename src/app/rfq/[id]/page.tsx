@@ -60,7 +60,7 @@ export default async function RfqDetailPage({
         </span>
       </div>
 
-      {/* Strukturált specifikáció */}
+      {/* Structured specification */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <h2 className="font-semibold text-slate-900">Ajánlatkérés specifikációja</h2>
         <p className="mt-1 text-xs text-slate-400">Eredeti igény: „{rfq.intakeText}”</p>
@@ -128,7 +128,7 @@ export default async function RfqDetailPage({
         )}
       </div>
 
-      {/* Shortlist + kiküldés (READY állapotban) */}
+      {/* Shortlist + send-out (in READY state) */}
       {rfq.status === "READY" && (
         <form action={sendRfqAction} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <input type="hidden" name="rfqId" value={rfq.id} />
@@ -196,7 +196,7 @@ export default async function RfqDetailPage({
         </form>
       )}
 
-      {/* Meghívók státusza */}
+      {/* Invite statuses */}
       {rfq.invites.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <h2 className="font-semibold text-slate-900">Kiküldött meghívók ({rfq.invites.length})</h2>
@@ -244,7 +244,7 @@ export default async function RfqDetailPage({
         </div>
       )}
 
-      {/* Ajánlatok összehasonlítása */}
+      {/* Offer comparison */}
       {rfq.status !== "READY" && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between gap-3">

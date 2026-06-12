@@ -1,6 +1,6 @@
-// Füstteszt a nyílt lehetőségek flow-ra: lekérdezés-logika + oldal-render.
-// Futtatás: npm run smoke  (seedelt DB kell; a HTTP-ellenőrzésekhez futó dev szerver)
-// A teszt-RFQ-kat [SMOKE] prefixszel hozza létre és a végén törli.
+// Smoke test for the open opportunities flow: query logic + page render.
+// Run: npm run smoke  (needs a seeded DB; HTTP checks need a running dev server)
+// Test RFQs are created with a [SMOKE] prefix and deleted at the end.
 import crypto from "crypto";
 import { db } from "../src/lib/db";
 import { findOpenRfqsForSupplier } from "../src/lib/matching";
@@ -28,9 +28,9 @@ async function main() {
     db.rfq.create({
       data: {
         companyId: buyer.companyId!,
-        intakeText: "[SMOKE] teszt igény",
-        title: "[SMOKE] Irodatakarítás teszt",
-        categoryId: "takaritas",
+        intakeText: "[SMOKE] test need",
+        title: "[SMOKE] Office cleaning test",
+        categoryId: "cleaning",
         regionId: "budapest",
         status: "SENT",
         ...data,
@@ -38,16 +38,16 @@ async function main() {
     });
 
   const open = await mk({});
-  const expired = await mk({ title: "[SMOKE] lejárt", deadline: new Date(Date.now() - 86_400_000) });
-  const draft = await mk({ title: "[SMOKE] piszkozat", status: "READY" });
-  const otherCat = await mk({ title: "[SMOKE] más kategória", categoryId: "it-support" });
+  const expired = await mk({ title: "[SMOKE] expired", deadline: new Date(Date.now() - 86_400_000) });
+  const draft = await mk({ title: "[SMOKE] draft", status: "READY" });
+  const otherCat = await mk({ title: "[SMOKE] other category", categoryId: "it-support" });
 
   try {
     const ids = (await findOpenRfqsForSupplier(supplier.id)).map((r) => r.id);
-    assert(ids.includes(open.id), "élő, illeszkedő RFQ megjelenik");
-    assert(!ids.includes(expired.id), "lejárt határidejű RFQ nem jelenik meg");
-    assert(!ids.includes(draft.id), "READY (még nem kiküldött) RFQ nem jelenik meg");
-    assert(!ids.includes(otherCat.id), "nem illeszkedő kategóriájú RFQ nem jelenik meg");
+    assert(ids.includes(open.id), "live, matching RFQ shows up");
+    assert(!ids.includes(expired.id), "RFQ past its deadline does not show up");
+    assert(!ids.includes(draft.id), "READY (not yet sent) RFQ does not show up");
+    assert(!ids.includes(otherCat.id), "RFQ in a non-matching category does not show up");
 
     await db.rfqInvite.create({
       data: {
@@ -60,9 +60,10 @@ async function main() {
       },
     });
     const after = (await findOpenRfqsForSupplier(supplier.id)).map((r) => r.id);
-    assert(!after.includes(open.id), "meghívóval/jelentkezéssel rendelkező RFQ kikerül a listából");
+    assert(!after.includes(open.id), "RFQ with an existing invite/application drops off the list");
 
-    // HTTP-render aláírt session cookie-val (csak futó dev szerver mellett)
+    // HTTP render with a signed session cookie (only with a running dev server).
+    // The expected heading is Hungarian because the UI targets the Hungarian market.
     try {
       const secret = process.env.AUTH_SECRET ?? "dev-only-secret-change-in-production";
       const payload = `${supplierUser.id}.${Date.now() + 60_000}`;
@@ -71,13 +72,13 @@ async function main() {
         headers: { cookie: `session=${payload}.${sig}` },
       });
       const html = await res.text();
-      assert(res.status === 200, `oldal 200-at ad (kapott: ${res.status})`);
-      assert(html.includes("Nyílt lehetőségek"), "oldal címe renderelődik");
+      assert(res.status === 200, `page returns 200 (got: ${res.status})`);
+      assert(html.includes("Nyílt lehetőségek"), "page heading renders");
 
       const anon = await fetch(`${BASE}/supplier/opportunities`, { redirect: "manual" });
-      assert(anon.status >= 300 && anon.status < 400, `bejelentkezés nélkül redirect (kapott: ${anon.status})`);
+      assert(anon.status >= 300 && anon.status < 400, `unauthenticated request redirects (got: ${anon.status})`);
     } catch {
-      console.log(`SKIP: nem fut dev szerver a ${BASE} címen – HTTP-ellenőrzések kihagyva`);
+      console.log(`SKIP: no dev server running at ${BASE} – HTTP checks skipped`);
     }
   } finally {
     await db.rfq.deleteMany({ where: { title: { startsWith: "[SMOKE]" } } });

@@ -40,7 +40,7 @@ function firstTextBlock(content: Anthropic.ContentBlock[]): string {
   return "";
 }
 
-// --- Szabály-alapú fallback (API kulcs nélkül is működik a teljes loop) ---
+// --- Rule-based fallback (the full loop works without an API key) ---
 
 function guessCategory(text: string): string | null {
   const lower = text.toLowerCase();
@@ -94,7 +94,7 @@ function fallbackSpec(intakeText: string, qa: QA[], regionName: string | null): 
   };
 }
 
-// --- AI-hívások (Claude, strukturált kimenettel) ---
+// --- AI calls (Claude, structured output; user-facing text is Hungarian) ---
 
 export async function clarifyIntake(intakeText: string): Promise<ClarifyResult> {
   const client = getClient();
@@ -107,22 +107,22 @@ export async function clarifyIntake(intakeText: string): Promise<ClarifyResult> 
     properties: {
       title: {
         type: "string",
-        description: "Rövid, tárgyilagos magyar cím az ajánlatkéréshez (max 80 karakter)",
+        description: "Short, matter-of-fact Hungarian title for the RFQ (max 80 characters)",
       },
       categoryId: {
         type: "string",
-        enum: [...CATEGORIES.map((c) => c.id), "egyeb"],
-        description: "A legjobban illő kategória, vagy 'egyeb' ha egyik sem illik",
+        enum: [...CATEGORIES.map((c) => c.id), "other"],
+        description: "The best-matching category, or 'other' if none fits",
       },
       regionId: {
         type: "string",
-        enum: [...REGIONS.map((r) => r.id), "ismeretlen"],
-        description: "A teljesítés helye alapján a vármegye, vagy 'ismeretlen'",
+        enum: [...REGIONS.map((r) => r.id), "unknown"],
+        description: "The county based on the place of performance, or 'unknown'",
       },
       questions: {
         type: "array",
         items: { type: "string" },
-        description: "3-8 célzott pontosító kérdés magyarul",
+        description: "3-8 targeted clarifying questions in Hungarian",
       },
     },
   };
@@ -132,11 +132,11 @@ export async function clarifyIntake(intakeText: string): Promise<ClarifyResult> 
       model: MODEL,
       max_tokens: 4096,
       system:
-        "B2B beszerzési asszisztens vagy magyar KKV-knak. A vevő egy rövid mondatban írja le az igényét. " +
-        "A feladatod: cím javaslása, kategória és régió felismerése, valamint 3-8 olyan pontosító kérdés megfogalmazása, " +
-        "amelyek válaszaiból teljes értékű, beszállítóknak kiküldhető ajánlatkérés (RFQ) állítható össze. " +
-        "Csak olyat kérdezz, ami az árazáshoz és a teljesítéshez tényleg kell. Ne kérdezz rá arra, ami a leírásból már kiderül.",
-      messages: [{ role: "user", content: `A vevő igénye: "${intakeText}"` }],
+        "You are a B2B procurement assistant for Hungarian SMEs. The buyer describes their need in a short sentence. " +
+        "Your job: suggest a title, detect category and region, and formulate 3-8 clarifying questions whose answers " +
+        "make a complete RFQ that can be sent to suppliers. Write the title and the questions in Hungarian. " +
+        "Only ask what is genuinely needed for pricing and delivery. Don't ask about anything already clear from the description.",
+      messages: [{ role: "user", content: `The buyer's need: "${intakeText}"` }],
       output_config: { format: { type: "json_schema", schema } },
     });
     const parsed = JSON.parse(firstTextBlock(response.content)) as {
@@ -147,13 +147,13 @@ export async function clarifyIntake(intakeText: string): Promise<ClarifyResult> 
     };
     return {
       title: parsed.title,
-      categoryId: parsed.categoryId === "egyeb" ? null : parsed.categoryId,
-      regionId: parsed.regionId === "ismeretlen" ? null : parsed.regionId,
+      categoryId: parsed.categoryId === "other" ? null : parsed.categoryId,
+      regionId: parsed.regionId === "unknown" ? null : parsed.regionId,
       questions: parsed.questions.slice(0, 8),
       aiUsed: true,
     };
   } catch (err) {
-    console.error("AI clarifyIntake hiba, fallback módra váltás:", err);
+    console.error("AI clarifyIntake failed, switching to fallback mode:", err);
     return fallbackClarify(intakeText);
   }
 }
@@ -172,18 +172,18 @@ export async function buildSpec(
     additionalProperties: false,
     required: ["summary", "scope", "location", "schedule", "contractType", "requirements", "notes"],
     properties: {
-      summary: { type: "string", description: "2-3 mondatos összefoglaló a beszállítóknak" },
-      scope: { type: "array", items: { type: "string" }, description: "A feladat terjedelme pontokban" },
-      location: { type: "string", description: "Teljesítés helye" },
-      schedule: { type: "string", description: "Ütemezés, gyakoriság, kezdés" },
-      contractType: { type: "string", description: "Szerződés jellege (folyamatos / projekt / eseti)" },
-      requirements: { type: "array", items: { type: "string" }, description: "Elvárások, tanúsítványok, feltételek" },
-      notes: { type: "string", description: "Egyéb fontos információ az ajánlatadáshoz" },
+      summary: { type: "string", description: "2-3 sentence Hungarian summary for suppliers" },
+      scope: { type: "array", items: { type: "string" }, description: "Scope of work as bullet points, in Hungarian" },
+      location: { type: "string", description: "Place of performance" },
+      schedule: { type: "string", description: "Schedule, frequency, start" },
+      contractType: { type: "string", description: "Contract type (ongoing / project / one-off)" },
+      requirements: { type: "array", items: { type: "string" }, description: "Expectations, certifications, conditions" },
+      notes: { type: "string", description: "Other information important for quoting" },
     },
   };
 
   const qaText = qa
-    .map((x) => `K: ${x.question}\nV: ${x.answer.trim() || "(nincs válasz)"}`)
+    .map((x) => `Q: ${x.question}\nA: ${x.answer.trim() || "(no answer)"}`)
     .join("\n\n");
 
   try {
@@ -191,17 +191,17 @@ export async function buildSpec(
       model: MODEL,
       max_tokens: 4096,
       system:
-        "B2B beszerzési asszisztens vagy. Az eredeti vevői igényből és a pontosító kérdésekre adott válaszokból " +
-        "állíts össze strukturált, beszállítóknak kiküldhető magyar nyelvű ajánlatkérés-specifikációt. " +
-        "Csak a megadott információkra támaszkodj, ne találj ki adatokat. Ami nem ismert, ott írd: 'Egyeztetés alapján'.",
+        "You are a B2B procurement assistant. From the buyer's original need and the answers to the clarifying " +
+        "questions, assemble a structured Hungarian-language RFQ specification that can be sent to suppliers. " +
+        "Rely only on the information provided; don't invent data. Where something is unknown, write: 'Egyeztetés alapján'.",
       messages: [
         {
           role: "user",
           content:
-            `Eredeti igény: "${intakeText}"\n` +
-            `Kategória: ${categoryName ?? "ismeretlen"}\n` +
-            `Régió: ${regionName ?? "ismeretlen"}\n\n` +
-            `Pontosító kérdések és válaszok:\n${qaText}`,
+            `Original need: "${intakeText}"\n` +
+            `Category: ${categoryName ?? "unknown"}\n` +
+            `Region: ${regionName ?? "unknown"}\n\n` +
+            `Clarifying questions and answers:\n${qaText}`,
         },
       ],
       output_config: { format: { type: "json_schema", schema } },
@@ -209,7 +209,7 @@ export async function buildSpec(
     const spec = JSON.parse(firstTextBlock(response.content)) as RfqSpec;
     return { spec, aiUsed: true };
   } catch (err) {
-    console.error("AI buildSpec hiba, fallback módra váltás:", err);
+    console.error("AI buildSpec failed, switching to fallback mode:", err);
     return { spec: fallbackSpec(intakeText, qa, regionName), aiUsed: false };
   }
 }
@@ -250,11 +250,11 @@ export async function compareOffers(
   const offerText = offers
     .map(
       (o, i) =>
-        `Ajánlat ${i + 1} – ${o.companyName}\n` +
-        `Nettó ár: ${o.priceNet} Ft (${o.priceUnit})\n` +
-        `Kezdés: ${o.startDate ?? "nincs megadva"}\n` +
-        `Érvényesség: ${o.validUntil ?? "nincs megadva"}\n` +
-        `Megjegyzés: ${o.notes ?? "-"}`,
+        `Offer ${i + 1} – ${o.companyName}\n` +
+        `Net price: ${o.priceNet} HUF (${o.priceUnit})\n` +
+        `Start: ${o.startDate ?? "not provided"}\n` +
+        `Valid until: ${o.validUntil ?? "not provided"}\n` +
+        `Notes: ${o.notes ?? "-"}`,
     )
     .join("\n\n");
 
@@ -264,20 +264,20 @@ export async function compareOffers(
       max_tokens: 16000,
       thinking: { type: "adaptive" },
       system:
-        "B2B beszerzési tanácsadó vagy magyar KKV-knak. Hasonlítsd össze a beérkezett ajánlatokat tárgyilagosan. " +
-        "Emeld ki az ár/érték szempontokat, a kockázatokat és a hiányzó információkat. " +
-        "A végén adj rövid, indokolt javaslatot, de hangsúlyozd, hogy a döntés a vevőé. " +
-        "Tömör, jól tagolt magyar szöveget írj, legfeljebb 300 szóban. Ne használj markdown formázást, csak sima szöveget és sorszámozott listákat.",
+        "You are a B2B procurement advisor for Hungarian SMEs. Compare the received offers objectively. " +
+        "Highlight price/value considerations, risks, and missing information. " +
+        "Finish with a short, justified recommendation, but stress that the decision belongs to the buyer. " +
+        "Write concise, well-structured Hungarian text, at most 300 words. Use plain text and numbered lists only, no markdown formatting.",
       messages: [
         {
           role: "user",
-          content: `Az ajánlatkérés összefoglalója: ${rfqSummary}\n\nBeérkezett ajánlatok:\n\n${offerText}`,
+          content: `RFQ summary: ${rfqSummary}\n\nReceived offers:\n\n${offerText}`,
         },
       ],
     });
     return { text: firstTextBlock(response.content), aiUsed: true };
   } catch (err) {
-    console.error("AI compareOffers hiba, fallback módra váltás:", err);
+    console.error("AI compareOffers failed, switching to fallback mode:", err);
     return { text: fallbackComparison(offers), aiUsed: false };
   }
 }

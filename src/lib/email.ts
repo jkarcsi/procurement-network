@@ -1,8 +1,9 @@
 import { db } from "./db";
 
-// Demo e-mail réteg: a leveleket az EmailOutbox táblába írja, a /outbox
-// oldalon megtekinthetők. Éles bevezetésnél itt cserélhető valós providerre
-// (pl. Resend, SES) ugyanazzal az interfésszel.
+// Demo email layer: messages are written to the EmailOutbox table and shown
+// on the /outbox page. For production this is the single place to swap in a
+// real provider (e.g. Resend, SES) behind the same interface.
+// Email bodies are Hungarian — the product targets the Hungarian market.
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 

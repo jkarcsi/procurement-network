@@ -1,7 +1,7 @@
 import { db } from "./db";
 
-// AI supplier shortlist a riport logikája szerint: kategória + régió + múltbeli
-// reakciók (válaszarány) alapján pontoz, determinisztikusan és auditálhatóan.
+// AI supplier shortlist per the report's logic: scores by category + region +
+// past responsiveness (response rate), deterministically and auditably.
 
 export type SupplierMatch = {
   supplierId: string;
@@ -28,6 +28,7 @@ export async function shortlistSuppliers(
   });
 
   const scored = suppliers.map((s) => {
+    // Reason strings are Hungarian: they surface directly in the buyer UI.
     let score = 50;
     const reasons: string[] = ["kategória egyezés"];
 
@@ -66,9 +67,9 @@ export async function shortlistSuppliers(
   return scored.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
-// Nyílt lehetőségek a beszállítói oldalon: kiküldött, még élő RFQ-k, amelyek
-// kategóriában (és régióban, ha nem országos a beszállító) illeszkednek a profilhoz,
-// és amelyekre még nincs meghívója / jelentkezése.
+// Open opportunities on the supplier side: sent, still-live RFQs that match
+// the profile by category (and region, unless the supplier is nationwide),
+// and that the supplier has no invite / application for yet.
 export async function findOpenRfqsForSupplier(supplierId: string) {
   const profile = await db.supplierProfile.findUnique({
     where: { id: supplierId },

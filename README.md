@@ -1,77 +1,83 @@
-# Procura – AI-támogatott B2B beszerzési hálózat (MVP)
+# Procura – AI-assisted B2B procurement network (MVP)
 
-Magyar KKV-kra szabott, buyer-led procurement network MVP a deep research riport alapján.
-A teljes „repeatable procurement loop”-ot lefedi:
+A buyer-led procurement network MVP tailored to Hungarian SMEs, based on the
+deep research report. It covers the full "repeatable procurement loop":
 
-**egymondatos intake → AI pontosító kérdések → strukturált RFQ → AI beszállítói shortlist
-(kategória + régió + reakcióstatisztika) → kiküldés one-click válaszlinkkel → strukturált
-ajánlatok → AI összehasonlítás → vevői döntés → audit trail**
+**one-sentence intake → AI clarifying questions → structured RFQ → AI supplier
+shortlist (category + region + response stats) → send-out with one-click reply
+link → structured offers → AI comparison → buyer decision → audit trail**
 
-A loop kétoldalú: a regisztrált beszállítók a **Nyílt lehetőségek** oldalon meghívás nélkül
-is megtalálják és megpályázhatják a profiljukhoz (kategória + régió) illő élő ajánlatkéréseket.
+The loop is two-sided: registered suppliers can also discover and apply to
+live RFQs matching their profile (category + region) on the **Open
+opportunities** page — no invitation needed.
 
-## Indítás
+The product targets the Hungarian market: **UI copy, emails, and AI output are
+Hungarian**, while the codebase (identifiers, slugs, comments, docs) is English.
+
+## Getting started
 
 ```bash
 npm install
-cp .env.example .env    # DATABASE_URL nélkül a prisma parancsok hibára futnak
-npx prisma db push      # SQLite adatbázis létrehozása
-npm run db:seed         # kategóriák, régiók, 24 demo beszállító, demo fiókok
+cp .env.example .env    # prisma commands fail without DATABASE_URL
+npx prisma db push      # create the SQLite database
+npm run db:seed         # categories, regions, 24 demo suppliers, demo accounts
 npm run dev             # http://localhost:3000
 ```
 
-### Füstteszt
+### Smoke test
 
 ```bash
-npm run smoke           # seedelt DB kell; futó `npm run dev` mellett HTTP-ellenőrzéseket is végez
+npm run smoke           # needs a seeded DB; with `npm run dev` running it also does HTTP checks
 ```
 
-### Demo fiókok
+### Demo accounts
 
-| Szerep | E-mail | Jelszó |
+| Role | Email | Password |
 |---|---|---|
-| Vevő | `demo@vevo.hu` | `demo1234` |
-| Beszállító (CleanPro Facility Kft.) | `demo@beszallito.hu` | `demo1234` |
+| Buyer | `demo@vevo.hu` | `demo1234` |
+| Supplier (CleanPro Facility Kft.) | `demo@beszallito.hu` | `demo1234` |
 
-## AI-mód vs. fallback-mód
+## AI mode vs. fallback mode
 
-A `.env`-ben add meg az `ANTHROPIC_API_KEY`-t a valódi AI-funkciókhoz
-(intake-elemzés, kérdésgenerálás, spec-összeállítás, ajánlat-összehasonlítás – Claude,
-strukturált JSON-kimenettel). **Kulcs nélkül is működik a teljes loop**: kulcsszó-alapú
-kategória/régió-felismerés és kategóriánkénti sablonkérdések veszik át az AI szerepét.
+Set `ANTHROPIC_API_KEY` in `.env` for the real AI features (intake analysis,
+question generation, spec building, offer comparison – Claude with structured
+JSON output). **The full loop works without a key too**: keyword-based
+category/region detection and per-category template questions take over the
+AI's role.
 
-## Demo e-mailek
+## Demo emails
 
-Éles e-mail-küldés helyett a kiküldött RFQ-meghívók az **Outbox** oldalra
-(`/outbox`) kerülnek – innen nyithatók meg a beszállítói válaszlinkek (`/r/<token>`),
-amelyek **regisztráció nélkül** használhatók (a riport „one-click reply, optional
-registration” elve szerint).
+Instead of real email delivery, outgoing RFQ invites land on the **Outbox**
+page (`/outbox`) – open the supplier reply links (`/r/<token>`) from there.
+Reply links work **without registration** (per the report's "one-click reply,
+optional registration" principle).
 
-## Fő útvonalak
+## Main routes
 
-| Útvonal | Mi van ott |
+| Route | What's there |
 |---|---|
-| `/` | Landing + egymondatos intake |
-| `/rfq/new` | Kétlépéses RFQ-varázsló (intake → AI kérdések → spec) |
-| `/dashboard` | Vevői RFQ-lista |
-| `/rfq/[id]` | RFQ-részletek: spec, shortlist, kiküldés, ajánlat-összehasonlítás, audit trail |
-| `/r/[token]` | Publikus beszállítói válaszoldal (token-alapú, regisztráció nélkül) |
-| `/supplier` | Beszállítói portál: meghívók, válaszstatisztikák |
-| `/supplier/opportunities` | Nyílt lehetőségek: a profilhoz illő élő RFQ-k, meghívás nélküli jelentkezéssel |
-| `/supplier/profile` | Beszállítói profil: kategóriák, régiók, tanúsítványok |
-| `/outbox` | Demo kimenő e-mailek |
+| `/` | Landing + one-sentence intake |
+| `/rfq/new` | Two-step RFQ wizard (intake → AI questions → spec) |
+| `/dashboard` | Buyer RFQ list |
+| `/rfq/[id]` | RFQ details: spec, shortlist, send-out, offer comparison, audit trail |
+| `/r/[token]` | Public supplier reply page (token-based, no registration) |
+| `/supplier` | Supplier portal: invites, response stats |
+| `/supplier/opportunities` | Open opportunities: live RFQs matching the profile, self-apply without invite |
+| `/supplier/profile` | Supplier profile: categories, regions, certifications |
+| `/outbox` | Demo outgoing emails |
 
-## Architektúra
+## Architecture
 
 - **Next.js 16** (App Router, server actions, Turbopack) + **React 19** + **Tailwind 4**
-- **Prisma 6 + SQLite** – éles környezetben Postgres-re váltható a schema módosítása nélkül
-- **@anthropic-ai/sdk** – `claude-opus-4-8` (felülírható: `ANTHROPIC_MODEL`),
-  strukturált kimenet `output_config.format` JSON-sémával
-- Egyszerű HMAC-aláírt cookie session (`src/lib/auth.ts`)
-- Beszállítói matching determinisztikus pontozással (`src/lib/matching.ts`):
-  kategória 50p + régió 30p (országos 20p) + válaszarány max 15p + tanúsítvány 5p
+- **Prisma 6 + SQLite** – swappable to Postgres in production without schema changes
+- **@anthropic-ai/sdk** – model from `ANTHROPIC_MODEL` env var,
+  structured output via `output_config.format` JSON schema
+- Simple HMAC-signed cookie session (`src/lib/auth.ts`)
+- Deterministic supplier matching score (`src/lib/matching.ts`):
+  category 50 + region 30 (nationwide 20) + response rate up to 15 + certification 5
 
-## A riport beachhead kategóriái (seedelve)
+## Beachhead categories from the report (seeded)
 
-Takarítás · HVAC/klíma · Őrzés-védelem · Munkavédelem · Tűzvédelem · IT support
-(második hullám), Budapest + 19 vármegye régiótaxonómiával.
+Cleaning · HVAC / air conditioning · Security guarding · Occupational safety ·
+Fire safety · IT support (second wave), with a Budapest + 19 county region
+taxonomy.

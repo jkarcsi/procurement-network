@@ -3,8 +3,8 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 
-// Demo nézet: a "kiküldött" e-mailek itt jelennek meg, a beszállítói
-// válaszlinkek innen nyithatók meg.
+// Demo view: "sent" emails show up here; supplier reply links can be
+// opened from this page.
 export default async function OutboxPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/outbox");
