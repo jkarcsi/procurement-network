@@ -7,13 +7,23 @@ A teljes „repeatable procurement loop”-ot lefedi:
 (kategória + régió + reakcióstatisztika) → kiküldés one-click válaszlinkkel → strukturált
 ajánlatok → AI összehasonlítás → vevői döntés → audit trail**
 
+A loop kétoldalú: a regisztrált beszállítók a **Nyílt lehetőségek** oldalon meghívás nélkül
+is megtalálják és megpályázhatják a profiljukhoz (kategória + régió) illő élő ajánlatkéréseket.
+
 ## Indítás
 
 ```bash
 npm install
+cp .env.example .env    # DATABASE_URL nélkül a prisma parancsok hibára futnak
 npx prisma db push      # SQLite adatbázis létrehozása
 npm run db:seed         # kategóriák, régiók, 24 demo beszállító, demo fiókok
 npm run dev             # http://localhost:3000
+```
+
+### Füstteszt
+
+```bash
+npm run smoke           # seedelt DB kell; futó `npm run dev` mellett HTTP-ellenőrzéseket is végez
 ```
 
 ### Demo fiókok
@@ -47,6 +57,7 @@ registration” elve szerint).
 | `/rfq/[id]` | RFQ-részletek: spec, shortlist, kiküldés, ajánlat-összehasonlítás, audit trail |
 | `/r/[token]` | Publikus beszállítói válaszoldal (token-alapú, regisztráció nélkül) |
 | `/supplier` | Beszállítói portál: meghívók, válaszstatisztikák |
+| `/supplier/opportunities` | Nyílt lehetőségek: a profilhoz illő élő RFQ-k, meghívás nélküli jelentkezéssel |
 | `/supplier/profile` | Beszállítói profil: kategóriák, régiók, tanúsítványok |
 | `/outbox` | Demo kimenő e-mailek |
 

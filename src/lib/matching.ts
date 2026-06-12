@@ -65,3 +65,33 @@ export async function shortlistSuppliers(
 
   return scored.sort((a, b) => b.score - a.score).slice(0, limit);
 }
+
+// Nyílt lehetőségek a beszállítói oldalon: kiküldött, még élő RFQ-k, amelyek
+// kategóriában (és régióban, ha nem országos a beszállító) illeszkednek a profilhoz,
+// és amelyekre még nincs meghívója / jelentkezése.
+export async function findOpenRfqsForSupplier(supplierId: string) {
+  const profile = await db.supplierProfile.findUnique({
+    where: { id: supplierId },
+    include: { categories: true, regions: true },
+  });
+  if (!profile || profile.categories.length === 0) return [];
+
+  const categoryIds = profile.categories.map((c) => c.categoryId);
+  const regionIds = profile.regions.map((r) => r.regionId);
+
+  return db.rfq.findMany({
+    where: {
+      status: "SENT",
+      categoryId: { in: categoryIds },
+      invites: { none: { supplierId } },
+      AND: [
+        { OR: [{ deadline: null }, { deadline: { gte: new Date() } }] },
+        ...(profile.nationwide
+          ? []
+          : [{ OR: [{ regionId: null }, { regionId: { in: regionIds } }] }]),
+      ],
+    },
+    include: { company: true, category: true, region: true },
+    orderBy: { createdAt: "desc" },
+  });
+}

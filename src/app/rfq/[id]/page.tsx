@@ -216,7 +216,14 @@ export default async function RfqDetailPage({
                 return (
                   <tr key={invite.id}>
                     <td className="py-2">
-                      <p className="font-medium text-slate-800">{invite.companyName}</p>
+                      <p className="font-medium text-slate-800">
+                        {invite.companyName}
+                        {invite.source === "SELF" && (
+                          <span className="ml-2 inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800">
+                            maga jelentkezett
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-slate-400">{invite.email}</p>
                     </td>
                     <td className="py-2 text-slate-600">

@@ -231,6 +231,72 @@ export async function sendRfqAction(formData: FormData) {
   redirect(`/rfq/${rfq.id}`);
 }
 
+// ---------- Beszállítói jelentkezés nyílt lehetőségre ----------
+
+export async function joinOpenRfqAction(formData: FormData) {
+  const user = await getSessionUser();
+  const profile = user?.company?.supplierProfile;
+  if (!user || user.role !== "SUPPLIER" || !profile) {
+    redirect("/login?next=/supplier/opportunities");
+  }
+
+  const rfqId = String(formData.get("rfqId") ?? "");
+  const rfq = await db.rfq.findUnique({ where: { id: rfqId } });
+  if (!rfq || rfq.status !== "SENT" || (rfq.deadline && rfq.deadline < new Date())) {
+    redirect(
+      `/supplier/opportunities?error=${encodeURIComponent("Ez az ajánlatkérés már nem elérhető.")}`,
+    );
+  }
+
+  const categoryMatch = rfq.categoryId
+    ? await db.supplierCategory.findUnique({
+        where: { supplierId_categoryId: { supplierId: profile.id, categoryId: rfq.categoryId } },
+      })
+    : null;
+  if (!categoryMatch) {
+    redirect(
+      `/supplier/opportunities?error=${encodeURIComponent("Ez az ajánlatkérés nem illeszkedik a profilod kategóriáihoz.")}`,
+    );
+  }
+
+  const existing = await db.rfqInvite.findFirst({
+    where: { rfqId: rfq.id, supplierId: profile.id },
+  });
+  if (existing) redirect(`/r/${existing.token}`);
+
+  const matches = await shortlistSuppliers(rfq.categoryId!, rfq.regionId, 1000);
+  const match = matches.find((m) => m.supplierId === profile.id);
+  const token = crypto.randomBytes(24).toString("base64url");
+
+  await db.rfqInvite.create({
+    data: {
+      rfqId: rfq.id,
+      supplierId: profile.id,
+      email: profile.email,
+      companyName: user.company?.name ?? profile.email,
+      token,
+      source: "SELF",
+      matchScore: match?.score ?? null,
+      matchReason: match ? `saját jelentkezés – ${match.reason}` : "saját jelentkezés nyílt lehetőségre",
+    },
+  });
+  await db.supplierProfile.update({
+    where: { id: profile.id },
+    data: { inviteCount: { increment: 1 } },
+  });
+  await db.auditLog.create({
+    data: {
+      rfqId: rfq.id,
+      actor: profile.email,
+      event: "SUPPLIER_JOINED",
+      meta: `${user.company?.name ?? profile.email} jelentkezett a nyílt lehetőségre`,
+    },
+  });
+
+  revalidatePath(`/rfq/${rfq.id}`);
+  redirect(`/r/${token}`);
+}
+
 // ---------- Beszállítói válasz (publikus, token alapú) ----------
 
 export async function submitOfferAction(formData: FormData) {

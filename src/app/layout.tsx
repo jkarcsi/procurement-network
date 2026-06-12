@@ -58,6 +58,9 @@ export default async function RootLayout({
                   <Link href="/supplier" className="text-slate-600 hover:text-indigo-700">
                     Beszállítói portál
                   </Link>
+                  <Link href="/supplier/opportunities" className="text-slate-600 hover:text-indigo-700">
+                    Nyílt lehetőségek
+                  </Link>
                   <Link href="/supplier/profile" className="text-slate-600 hover:text-indigo-700">
                     Profil
                   </Link>

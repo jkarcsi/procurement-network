@@ -120,6 +120,7 @@ model RfqInvite {
   companyName String
   token       String           @unique
   status      String           @default("SENT") // SENT | VIEWED | DECLINED | OFFERED
+  source      String           @default("MATCHED") // MATCHED (vevő küldte) | SELF (beszállító jelentkezett)
   matchScore  Float?
   matchReason String?
   sentAt      DateTime         @default(now())

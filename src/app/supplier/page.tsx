@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { formatDateTime, INVITE_STATUS } from "@/lib/format";
+import { findOpenRfqsForSupplier } from "@/lib/matching";
 
 export default async function SupplierPortalPage() {
   const user = await getSessionUser();
   const profile = user?.company?.supplierProfile;
   if (!user || user.role !== "SUPPLIER" || !profile) redirect("/login?next=/supplier");
 
-  const [invites, categories] = await Promise.all([
+  const [invites, categories, openRfqs] = await Promise.all([
     db.rfqInvite.findMany({
       where: { supplierId: profile.id },
       include: { rfq: { include: { category: true, region: true, company: true } } },
@@ -19,6 +20,7 @@ export default async function SupplierPortalPage() {
       where: { supplierId: profile.id },
       include: { category: true },
     }),
+    findOpenRfqsForSupplier(profile.id),
   ]);
 
   const responseRate =
@@ -37,6 +39,17 @@ export default async function SupplierPortalPage() {
           Profil szerkesztése →
         </Link>
       </div>
+
+      {openRfqs.length > 0 && (
+        <Link
+          href="/supplier/opportunities"
+          className="block bg-indigo-50 border border-indigo-200 rounded-2xl p-4 hover:bg-indigo-100"
+        >
+          <p className="text-sm font-medium text-indigo-900">
+            🔎 {openRfqs.length} nyílt ajánlatkérés illik a profilodhoz – jelentkezz meghívás nélkül →
+          </p>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
