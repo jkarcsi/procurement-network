@@ -27,7 +27,7 @@ product measurably closer to that goal and leave the repository green
       fingerprint via platform authenticators)
 - [ ] Mobile app: installable PWA baseline (done) → dedicated Expo React
       Native app on the public API, with `expo-local-authentication` biometrics
-- [ ] Search, filtering, and pagination on every list view
+- [x] Search, filtering, and pagination on every list view
 - [ ] In-app + email notifications for the core loop events
 - [ ] Admin panel (users, RFQs, suppliers, moderation)
 - [ ] Rate limiting and abuse protection on auth and public endpoints
@@ -147,7 +147,6 @@ file** for where the previous run left off.
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
-| P5 | Search / filter / pagination | `/dashboard` + `/supplier` + `/supplier/opportunities`, server-side via `searchParams` |
 | P6 | Notifications | `Notification` model, nav badge, `/notifications`, notify on offer received / accepted / new matching RFQ; welcome emails on registration |
 | P7 | Admin panel | `User.role = "ADMIN"`, `/admin` stats, users/RFQs/suppliers lists, credit ledger view, soft-deactivate users |
 | P8 | Rate limiting | In-memory limiter in `src/lib/rateLimit.ts`; login, RFQ creation, offer submission |
@@ -170,6 +169,20 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 6
+
+- **Shipped (P5):** Server-side search/filter/pagination via `searchParams`
+  (GET forms, no client JS): `/dashboard` (title search, status + category
+  filters, 10/page with clamped page index), `/supplier` invites (title
+  search, invite-status filter, 10/page; stats and open-RFQ banner kept),
+  `/supplier/opportunities` (title search; form only shows when there are
+  open RFQs). Filtered empty states everywhere.
+- **Verified:** build, lint, smoke (9/9) green; authenticated HTTP renders
+  checked for all three pages incl. combined filters and out-of-range page.
+- **Next step:** P6 — notifications (`Notification` model, nav badge,
+  `/notifications`, events: offer received / accepted / new matching RFQ;
+  welcome emails).
 
 ### 2026-06-12 — run 5
 

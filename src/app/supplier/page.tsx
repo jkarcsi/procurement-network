@@ -5,17 +5,35 @@ import { getSessionUser } from "@/lib/auth";
 import { formatDateTime, INVITE_STATUS } from "@/lib/format";
 import { findOpenRfqsForSupplier } from "@/lib/matching";
 
-export default async function SupplierPortalPage() {
+const PAGE_SIZE = 10;
+
+function pageUrl(params: { q?: string; status?: string }, page: number) {
+  const sp = new URLSearchParams();
+  if (params.q) sp.set("q", params.q);
+  if (params.status) sp.set("status", params.status);
+  if (page > 1) sp.set("page", String(page));
+  const qs = sp.toString();
+  return qs ? `/supplier?${qs}` : "/supplier";
+}
+
+export default async function SupplierPortalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
+}) {
+  const { q, status: statusFilter, page: pageParam } = await searchParams;
   const user = await getSessionUser();
   const profile = user?.company?.supplierProfile;
   if (!user || user.role !== "SUPPLIER" || !profile) redirect("/login?next=/supplier");
 
-  const [invites, categories, openRfqs] = await Promise.all([
-    db.rfqInvite.findMany({
-      where: { supplierId: profile.id },
-      include: { rfq: { include: { category: true, region: true, company: true } } },
-      orderBy: { sentAt: "desc" },
-    }),
+  const where = {
+    supplierId: profile.id,
+    ...(statusFilter && INVITE_STATUS[statusFilter] ? { status: statusFilter } : {}),
+    ...(q ? { rfq: { title: { contains: q } } } : {}),
+  };
+
+  const [total, categories, openRfqs] = await Promise.all([
+    db.rfqInvite.count({ where }),
     db.supplierCategory.findMany({
       where: { supplierId: profile.id },
       include: { category: true },
@@ -23,6 +41,18 @@ export default async function SupplierPortalPage() {
     findOpenRfqsForSupplier(profile.id),
   ]);
 
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1), pageCount);
+
+  const invites = await db.rfqInvite.findMany({
+    where,
+    include: { rfq: { include: { category: true, region: true, company: true } } },
+    orderBy: { sentAt: "desc" },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
+  });
+
+  const hasFilter = Boolean(q || statusFilter);
   const responseRate =
     profile.inviteCount > 0 ? Math.round((profile.responseCount / profile.inviteCount) * 100) : null;
 
@@ -70,10 +100,42 @@ export default async function SupplierPortalPage() {
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <h2 className="font-semibold text-slate-900">Beérkezett ajánlatkérések</h2>
+
+        <form className="mt-4 flex flex-col sm:flex-row gap-3">
+          <input
+            type="search"
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Keresés cím szerint…"
+            className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <select
+            name="status"
+            defaultValue={statusFilter ?? ""}
+            className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">Minden státusz</option>
+            {Object.entries(INVITE_STATUS).map(([value, s]) => (
+              <option key={value} value={value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <button className="bg-slate-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-700">
+            Szűrés
+          </button>
+          {hasFilter && (
+            <Link href="/supplier" className="text-sm text-slate-500 hover:text-indigo-700 self-center">
+              Törlés
+            </Link>
+          )}
+        </form>
+
         {invites.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">
-            Még nem érkezett ajánlatkérés. Állítsd be a kategóriáidat és régióidat a profilodban,
-            hogy a matching megtaláljon.
+          <p className="mt-4 text-sm text-slate-500">
+            {hasFilter
+              ? "Nincs a szűrésnek megfelelő ajánlatkérés."
+              : "Még nem érkezett ajánlatkérés. Állítsd be a kategóriáidat és régióidat a profilodban, hogy a matching megtaláljon."}
           </p>
         ) : (
           <table className="mt-4 w-full text-sm">
@@ -116,6 +178,32 @@ export default async function SupplierPortalPage() {
               })}
             </tbody>
           </table>
+        )}
+
+        {pageCount > 1 && (
+          <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
+            <span>
+              {total} találat · {page}/{pageCount}. oldal
+            </span>
+            <div className="flex gap-2">
+              {page > 1 && (
+                <Link
+                  href={pageUrl({ q, status: statusFilter }, page - 1)}
+                  className="border border-slate-300 rounded-lg px-3 py-1.5 hover:border-indigo-600 hover:text-indigo-700"
+                >
+                  ← Előző
+                </Link>
+              )}
+              {page < pageCount && (
+                <Link
+                  href={pageUrl({ q, status: statusFilter }, page + 1)}
+                  className="border border-slate-300 rounded-lg px-3 py-1.5 hover:border-indigo-600 hover:text-indigo-700"
+                >
+                  Következő →
+                </Link>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -15,17 +15,21 @@ export const metadata: Metadata = {
 export default async function SupplierOpportunitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; q?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, q } = await searchParams;
   const user = await getSessionUser();
   const profile = user?.company?.supplierProfile;
   if (!user || user.role !== "SUPPLIER" || !profile) redirect("/login?next=/supplier/opportunities");
 
-  const [rfqs, categoryCount] = await Promise.all([
+  const [allRfqs, categoryCount] = await Promise.all([
     findOpenRfqsForSupplier(profile.id),
     db.supplierCategory.count({ where: { supplierId: profile.id } }),
   ]);
+  const needle = (q ?? "").trim().toLowerCase();
+  const rfqs = needle
+    ? allRfqs.filter((r) => r.title.toLowerCase().includes(needle))
+    : allRfqs;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
@@ -43,10 +47,35 @@ export default async function SupplierOpportunitiesPage({
         </div>
       )}
 
+      {allRfqs.length > 0 && (
+        <form className="flex gap-3">
+          <input
+            type="search"
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Keresés cím szerint…"
+            className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button className="bg-slate-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-700">
+            Keresés
+          </button>
+          {needle && (
+            <Link
+              href="/supplier/opportunities"
+              className="text-sm text-slate-500 hover:text-indigo-700 self-center"
+            >
+              Törlés
+            </Link>
+          )}
+        </form>
+      )}
+
       {rfqs.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
           <p className="text-sm text-slate-600">
-            Most nincs a profilodhoz illő nyílt ajánlatkérés.
+            {needle
+              ? "Nincs a keresésnek megfelelő nyílt ajánlatkérés."
+              : "Most nincs a profilodhoz illő nyílt ajánlatkérés."}
           </p>
           <p className="mt-2 text-sm text-slate-500">
             {categoryCount === 0 ? (
