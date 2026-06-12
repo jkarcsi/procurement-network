@@ -12,19 +12,33 @@ export const CREDIT_PACKAGES = [
   { id: "l", credits: 200, priceHuf: 29990, name: "Vállalati csomag" },
 ] as const;
 
+// `reference` (e.g. a Stripe checkout session id) makes the grant idempotent:
+// a second call with the same reference is a no-op.
 export async function grantCredits(
   companyId: string,
   amount: number,
   type: "BONUS" | "PURCHASE",
   description: string,
+  reference?: string,
 ) {
   await db.$transaction(async (tx) => {
+    if (reference) {
+      const existing = await tx.creditTransaction.findUnique({ where: { reference } });
+      if (existing) return;
+    }
     const company = await tx.company.update({
       where: { id: companyId },
       data: { creditBalance: { increment: amount } },
     });
     await tx.creditTransaction.create({
-      data: { companyId, amount, balanceAfter: company.creditBalance, type, description },
+      data: {
+        companyId,
+        amount,
+        balanceAfter: company.creditBalance,
+        type,
+        description,
+        reference: reference ?? null,
+      },
     });
   });
 }

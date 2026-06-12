@@ -40,6 +40,7 @@ model CreditTransaction {
   balanceAfter Int
   type         String // "BONUS" | "PURCHASE" | "USAGE"
   description  String
+  reference    String?  @unique // external payment reference (e.g. Stripe session id) for idempotency
   createdAt    DateTime @default(now())
 }
 

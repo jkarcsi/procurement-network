@@ -19,8 +19,10 @@ product measurably closer to that goal and leave the repository green
 - [x] Real transactional email delivery (provider-backed, outbox as dev fallback)
 - [x] Public marketing/landing page with pricing, terms, and privacy pages
 - [x] Credit-based monetization of analysis features (ledger, balance, packages)
-- [ ] Stripe **test mode** checkout for credit packages and Pro subscription
-- [ ] Plan limits enforced server-side (free vs. paid tier)
+- [x] Stripe **test mode** checkout for credit packages (webhook-granted,
+      idempotent; demo grant without keys)
+- [ ] Stripe Pro subscription + plan limits enforced server-side
+      (`src/lib/limits.ts` in `createRfqAction`/`sendRfqAction`)
 - [ ] Biometric sign-in: passkeys/WebAuthn on web+PWA (Face ID / Touch ID /
       fingerprint via platform authenticators)
 - [ ] Mobile app: installable PWA baseline (done) → dedicated Expo React
@@ -144,7 +146,7 @@ file** for where the previous run left off.
 
 | # | Item | Scope hint |
 |---|------|-----------|
-| P3 | Stripe checkout (test mode) | Credit package purchase via hosted Checkout (replaces the demo grant in `purchaseCreditsAction`) + Pro subscription; `Company.plan` + Stripe fields; webhook handler; `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction` |
+| P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
 | P4 | Biometric sign-in (passkeys) | WebAuthn via `@simplewebauthn/server` + browser: register passkey from account settings, sign in with Face ID / Touch ID / fingerprint; password stays as fallback; works in PWA |
 | P5 | Search / filter / pagination | `/dashboard` + `/supplier` + `/supplier/opportunities`, server-side via `searchParams` |
 | P6 | Notifications | `Notification` model, nav badge, `/notifications`, notify on offer received / accepted / new matching RFQ; welcome emails on registration |
@@ -169,6 +171,22 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 3
+
+- **Shipped:** Stripe test-mode checkout for credit packages:
+  `src/lib/stripe.ts` (null without keys), `purchaseCreditsAction` redirects
+  to hosted Checkout when configured (HUF amounts in fillér), webhook at
+  `/api/webhooks/stripe` verifies signatures and grants credits idempotently
+  via the new unique `CreditTransaction.reference` (session id). `/credits`
+  shows Stripe vs demo copy and a cancel banner. Demo grant unchanged
+  without keys.
+- **Verified:** build, lint, smoke (8/8) green; duplicate-reference grant is
+  a no-op; webhook returns 503 unconfigured. NOT yet tested with real
+  `sk_test_` keys + `stripe listen` — do that at the start of the next run.
+- **Next step:** P3 remainder — Pro subscription (`Company.plan`, subscribe
+  from `/pricing`, subscription webhooks) + `src/lib/limits.ts` enforcing
+  FREE limits in `createRfqAction`/`sendRfqAction`.
 
 ### 2026-06-12 — run 2
 

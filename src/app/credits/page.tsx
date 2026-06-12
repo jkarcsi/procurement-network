@@ -14,9 +14,10 @@ const TX_TYPE: Record<string, string> = {
 export default async function CreditsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string }>;
+  searchParams: Promise<{ ok?: string; canceled?: string }>;
 }) {
-  const { ok } = await searchParams;
+  const { ok, canceled } = await searchParams;
+  const stripeEnabled = Boolean(process.env.STRIPE_SECRET_KEY);
   const user = await getSessionUser();
   if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login?next=/credits");
 
@@ -41,7 +42,14 @@ export default async function CreditsPage({
 
       {ok && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg p-3">
-          Sikeres vásárlás, a krediteket jóváírtuk.
+          {stripeEnabled
+            ? "Sikeres fizetés! A krediteket pár másodpercen belül jóváírjuk."
+            : "Sikeres vásárlás, a krediteket jóváírtuk."}
+        </div>
+      )}
+      {canceled && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-3">
+          A fizetést megszakítottad, a kártyádat nem terheltük.
         </div>
       )}
 
@@ -76,8 +84,9 @@ export default async function CreditsPage({
           ))}
         </div>
         <p className="mt-2 text-xs text-slate-400">
-          Demo környezet: a vásárlás azonnal jóváíródik, fizetés nélkül. Az éles bankkártyás
-          fizetés bevezetés alatt.
+          {stripeEnabled
+            ? "A fizetés a Stripe biztonságos felületén történik – kártyaadatot nem tárolunk."
+            : "Demo környezet: a vásárlás azonnal jóváíródik, fizetés nélkül."}
         </p>
       </div>
 

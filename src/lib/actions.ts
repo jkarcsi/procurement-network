@@ -10,6 +10,7 @@ import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } 
 import { shortlistSuppliers } from "./matching";
 import { sendRfqInviteEmail, sendOfferReceivedEmail, sendOfferAcceptedEmail } from "./email";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
+import { getStripe } from "./stripe";
 
 // ---------- Auth ----------
 
@@ -482,8 +483,9 @@ export async function compareOffersAction(formData: FormData) {
 
 // ---------- Credits ----------
 
-// Demo checkout: credits are granted immediately. Stripe test-mode checkout
-// replaces the grant step (P3); the action signature stays the same.
+// With Stripe configured (test mode), purchases go through hosted Checkout
+// and credits are granted by the webhook on payment. Without Stripe (demo),
+// credits are granted immediately.
 export async function purchaseCreditsAction(formData: FormData) {
   const user = await getSessionUser();
   if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login?next=/credits");
@@ -491,6 +493,29 @@ export async function purchaseCreditsAction(formData: FormData) {
   const packageId = String(formData.get("packageId") ?? "");
   const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
   if (!pkg) redirect("/credits");
+
+  const stripe = getStripe();
+  if (stripe) {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "huf",
+            // Stripe HUF amounts are in fillér and must be divisible by 100
+            unit_amount: pkg.priceHuf * 100,
+            product_data: { name: `Procura ${pkg.name} – ${pkg.credits} kredit` },
+          },
+        },
+      ],
+      success_url: `${baseUrl}/credits?ok=1`,
+      cancel_url: `${baseUrl}/credits?canceled=1`,
+      metadata: { companyId: user.companyId, packageId: pkg.id },
+    });
+    redirect(session.url ?? "/credits");
+  }
 
   await grantCredits(
     user.companyId,
