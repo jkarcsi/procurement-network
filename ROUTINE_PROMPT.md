@@ -23,7 +23,7 @@ product measurably closer to that goal and leave the repository green
       idempotent; demo grant without keys)
 - [ ] Stripe Pro subscription + plan limits enforced server-side
       (`src/lib/limits.ts` in `createRfqAction`/`sendRfqAction`)
-- [ ] Biometric sign-in: passkeys/WebAuthn on web+PWA (Face ID / Touch ID /
+- [x] Biometric sign-in: passkeys/WebAuthn on web+PWA (Face ID / Touch ID /
       fingerprint via platform authenticators)
 - [ ] Mobile app: installable PWA baseline (done) → dedicated Expo React
       Native app on the public API, with `expo-local-authentication` biometrics
@@ -147,7 +147,6 @@ file** for where the previous run left off.
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
-| P4 | Biometric sign-in (passkeys) | WebAuthn via `@simplewebauthn/server` + browser: register passkey from account settings, sign in with Face ID / Touch ID / fingerprint; password stays as fallback; works in PWA |
 | P5 | Search / filter / pagination | `/dashboard` + `/supplier` + `/supplier/opportunities`, server-side via `searchParams` |
 | P6 | Notifications | `Notification` model, nav badge, `/notifications`, notify on offer received / accepted / new matching RFQ; welcome emails on registration |
 | P7 | Admin panel | `User.role = "ADMIN"`, `/admin` stats, users/RFQs/suppliers lists, credit ledger view, soft-deactivate users |
@@ -171,6 +170,24 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 5
+
+- **Shipped (P4):** Passkey/biometric sign-in via WebAuthn
+  (`@simplewebauthn/server` v13): `Passkey` model, challenge in a
+  short-lived signed cookie (`src/lib/passkeys.ts`), four API routes
+  (register/login options+verify), usernameless discoverable-credential
+  login button on `/login`, passkey management on the new `/account` page
+  (add for current device, list, delete), nav links to `/account`.
+  Password login stays as fallback.
+- **Verified:** build, lint, smoke (9/9) green; endpoints checked:
+  login-options returns challenge, register-options 401 without session,
+  login-verify 400 without challenge, `/account` auth-gated. The full
+  WebAuthn ceremony needs a real browser/authenticator — test manually on
+  first deploy (works on localhost and any HTTPS origin; rpID derives from
+  NEXT_PUBLIC_BASE_URL).
+- **Next step:** P5 — search/filter/pagination on `/dashboard`,
+  `/supplier`, `/supplier/opportunities`.
 
 ### 2026-06-12 — run 4
 

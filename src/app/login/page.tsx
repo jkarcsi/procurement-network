@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loginAction } from "@/lib/actions";
+import PasskeyLogin from "./passkey-login";
 
 export default async function LoginPage({
   searchParams,
@@ -47,6 +48,8 @@ export default async function LoginPage({
           Belépés
         </button>
       </form>
+
+      <PasskeyLogin />
 
       <p className="mt-4 text-sm text-slate-500">
         Még nincs fiókod?{" "}

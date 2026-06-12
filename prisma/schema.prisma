@@ -15,7 +15,22 @@ model User {
   role         String // "BUYER" | "SUPPLIER"
   companyId    String?
   company      Company? @relation(fields: [companyId], references: [id])
+  passkeys     Passkey[]
   createdAt    DateTime @default(now())
+}
+
+// WebAuthn credential: enables biometric sign-in (Face ID / Touch ID /
+// fingerprint) via platform authenticators. Password stays as fallback.
+model Passkey {
+  id         String   @id // credential ID (base64url)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicKey  String // base64url-encoded COSE public key
+  counter    Int      @default(0)
+  transports String? // comma-separated AuthenticatorTransport list
+  name       String // user-facing label, e.g. browser/device name
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime?
 }
 
 model Company {

@@ -591,6 +591,19 @@ export async function upgradeToProAction() {
   redirect("/pricing?pro=1");
 }
 
+// ---------- Account / passkeys ----------
+
+export async function deletePasskeyAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user) redirect("/login?next=/account");
+
+  const passkeyId = String(formData.get("passkeyId") ?? "");
+  await db.passkey.deleteMany({ where: { id: passkeyId, userId: user.id } });
+
+  revalidatePath("/account");
+  redirect("/account");
+}
+
 // ---------- Supplier profile ----------
 
 export async function updateSupplierProfileAction(formData: FormData) {

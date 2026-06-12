@@ -88,7 +88,12 @@ export default async function RootLayout({
               )}
               {user ? (
                 <form action={logoutAction} className="flex items-center gap-3">
-                  <span className="hidden md:inline text-slate-400">{user.email}</span>
+                  <Link href="/account" className="hidden md:inline text-slate-400 hover:text-indigo-700">
+                    {user.email}
+                  </Link>
+                  <Link href="/account" className="md:hidden text-slate-600 hover:text-indigo-700">
+                    Fiók
+                  </Link>
                   <button className="text-slate-600 hover:text-indigo-700">Kilépés</button>
                 </form>
               ) : (
