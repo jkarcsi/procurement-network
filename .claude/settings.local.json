@@ -3,7 +3,11 @@
     "allow": [
       "PowerShell(node --version)",
       "PowerShell(npm --version)",
-      "PowerShell($paths = @\\(\"C:\\\\Program Files\\\\nodejs\\\\node.exe\", \"C:\\\\Program Files \\(x86\\)\\\\nodejs\\\\node.exe\", \"$env:LOCALAPPDATA\\\\Programs\\\\nodejs\\\\node.exe\", \"$env:APPDATA\\\\nvm\", \"$env:LOCALAPPDATA\\\\fnm\", \"$env:USERPROFILE\\\\scoop\\\\apps\\\\nodejs\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Output \"FOUND: $p\" } }; Get-Command winget -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)"
+      "PowerShell($paths = @\\(\"C:\\\\Program Files\\\\nodejs\\\\node.exe\", \"C:\\\\Program Files \\(x86\\)\\\\nodejs\\\\node.exe\", \"$env:LOCALAPPDATA\\\\Programs\\\\nodejs\\\\node.exe\", \"$env:APPDATA\\\\nvm\", \"$env:LOCALAPPDATA\\\\fnm\", \"$env:USERPROFILE\\\\scoop\\\\apps\\\\nodejs\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Output \"FOUND: $p\" } }; Get-Command winget -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)",
+      "Bash(mkdir -p ~/.config/git)",
+      "Bash(echo \"noreply@anthropic.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKy87HxSEheG8vEPhSs9u2KZCtVErAQfpmprtUJCZ2w7\")",
+      "Bash(git config *)",
+      "Bash(git log *)"
     ]
   }
 }
