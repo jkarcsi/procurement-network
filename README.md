@@ -82,6 +82,19 @@ report's "one-click reply, optional registration" principle).
 - Deterministic supplier matching score (`src/lib/matching.ts`):
   category 50 + region 30 (nationwide 20) + response rate up to 15 + certification 5
 
+## Deployment
+
+- **Docker**: `docker build -t procura . && docker run -p 3000:3000 -v procura-data:/data --env-file .env procura`
+  (SQLite on the `/data` volume; schema syncs on boot). For real scale set
+  `DATABASE_URL` to managed Postgres — the schema is compatible.
+- **CI**: `.github/workflows/ci.yml` runs lint + build + unit tests + smoke
+  on every PR and push to main.
+- **Required env vars in production**: `DATABASE_URL`, `AUTH_SECRET` (strong
+  random), `NEXT_PUBLIC_BASE_URL` (HTTPS origin — passkeys/WebAuthn derive the
+  relying-party ID from it). Optional: `ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL`
+  (analysis quality), `RESEND_API_KEY`/`EMAIL_FROM` (real email),
+  `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` (payments, test mode only).
+
 ## Beachhead categories from the report (seeded)
 
 Cleaning · HVAC / air conditioning · Security guarding · Occupational safety ·

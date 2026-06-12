@@ -32,7 +32,7 @@ product measurably closer to that goal and leave the repository green
 - [x] Admin panel (users, RFQs, suppliers, credit ledger, moderation)
 - [x] Rate limiting and abuse protection on auth and public endpoints
 - [x] Automated tests (vitest: rate limit, credits incl. idempotency, plan limits, matching); smoke covers discovery + HTTP
-- [ ] Production deployment story (Dockerfile, CI, documented env vars, Postgres-ready)
+- [x] Production deployment story (Dockerfile, CI, documented env vars, Postgres-ready)
 - [ ] Error tracking and basic product analytics (opt-in via env vars)
 - [ ] Legal sign-off: terms + privacy reviewed by counsel, GDPR records
       (processor list incl. LLM provider and email provider), data export/delete
@@ -147,9 +147,7 @@ file** for where the previous run left off.
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
-| P10 | Public API v1 | `/api/v1/*` with hashed API keys, OpenAPI JSON — foundation for the mobile app |
 | P11 | Mobile app (Expo) | React Native app in `mobile/` on the public API: sign-in (passkey/biometric via `expo-local-authentication`), RFQ list/detail, offer review, push notifications; Revolut-grade navigation and polish |
-| P12 | Deployment | Multi-stage Dockerfile, GitHub Actions CI (lint+build+smoke), Postgres migration notes, env var docs |
 | P13 | Monitoring | Sentry + PostHog, both strictly opt-in via env vars |
 | P14 | File attachments | `Attachment` model, local `/uploads` in dev, 10 MB cap, PDF/DOCX/XLSX/PNG/JPG |
 | P15 | Supplier directory + reviews | `/suppliers` browse/filter, invite-to-RFQ; buyer rates supplier after DECIDED, rating feeds matching (≤5 pts) |
@@ -170,6 +168,24 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 10
+
+- **Shipped (P10):** Public API v1 — `ApiKey` model (SHA-256 hash only,
+  plaintext shown once), Bearer auth + 60/min per-key rate limit in
+  `src/lib/apiAuth.ts`; endpoints: GET/POST `/api/v1/rfqs` (status
+  filter; create honors plan limits), GET `/api/v1/rfqs/[id]` (invites +
+  offers), `/api/v1/openapi.json`; key management on `/account`.
+- **Shipped (P12):** Deployment — multi-stage Dockerfile (non-root,
+  SQLite on /data volume, schema sync on boot, Postgres-ready),
+  `.dockerignore`, GitHub Actions CI (lint+build+test+smoke on PR/main),
+  README deployment + env var docs. NOTE: docker build not run in this
+  sandbox — verify the image on first real deploy.
+- **Verified:** build, lint, smoke (9/9), tests (9/9); API end-to-end:
+  401 wrong key, 201 create (READY), list/detail/openapi 200.
+- **Next step:** P11 Expo mobile app (on the v1 API) or P13 monitoring
+  (Sentry/PostHog, opt-in) — pick by available budget; P13 is the
+  smaller slice.
 
 ### 2026-06-12 — run 9 (continued)
 
