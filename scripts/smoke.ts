@@ -41,6 +41,7 @@ async function main() {
   const expired = await mk({ title: "[SMOKE] expired", deadline: new Date(Date.now() - 86_400_000) });
   const draft = await mk({ title: "[SMOKE] draft", status: "READY" });
   const otherCat = await mk({ title: "[SMOKE] other category", categoryId: "it-support" });
+  const otherRegion = await mk({ title: "[SMOKE] other region", regionId: "zala" });
 
   try {
     const ids = (await findOpenRfqsForSupplier(supplier.id)).map((r) => r.id);
@@ -48,6 +49,7 @@ async function main() {
     assert(!ids.includes(expired.id), "RFQ past its deadline does not show up");
     assert(!ids.includes(draft.id), "READY (not yet sent) RFQ does not show up");
     assert(!ids.includes(otherCat.id), "RFQ in a non-matching category does not show up");
+    assert(!ids.includes(otherRegion.id), "RFQ in a non-matching region does not show up");
 
     await db.rfqInvite.create({
       data: {

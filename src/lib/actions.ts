@@ -272,6 +272,22 @@ export async function joinOpenRfqAction(formData: FormData) {
     );
   }
 
+  // Mirror the region filter of findOpenRfqsForSupplier: the listing hides
+  // out-of-region RFQs, so a hand-crafted POST must not bypass it either.
+  const regionMatch =
+    !rfq.regionId ||
+    profile.nationwide ||
+    Boolean(
+      await db.supplierRegion.findUnique({
+        where: { supplierId_regionId: { supplierId: profile.id, regionId: rfq.regionId } },
+      }),
+    );
+  if (!regionMatch) {
+    redirect(
+      `/supplier/opportunities?error=${encodeURIComponent("Ez az ajánlatkérés nem illeszkedik a profilod régióihoz.")}`,
+    );
+  }
+
   const existing = await db.rfqInvite.findFirst({
     where: { rfqId: rfq.id, supplierId: profile.id },
   });
