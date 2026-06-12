@@ -28,7 +28,7 @@ product measurably closer to that goal and leave the repository green
 - [ ] Mobile app: installable PWA baseline (done) → dedicated Expo React
       Native app on the public API, with `expo-local-authentication` biometrics
 - [x] Search, filtering, and pagination on every list view
-- [ ] In-app + email notifications for the core loop events
+- [x] In-app + email notifications for the core loop events
 - [ ] Admin panel (users, RFQs, suppliers, moderation)
 - [ ] Rate limiting and abuse protection on auth and public endpoints
 - [ ] Automated tests for matching + offer + credit flows; smoke covers the loop
@@ -147,7 +147,6 @@ file** for where the previous run left off.
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
-| P6 | Notifications | `Notification` model, nav badge, `/notifications`, notify on offer received / accepted / new matching RFQ; welcome emails on registration |
 | P7 | Admin panel | `User.role = "ADMIN"`, `/admin` stats, users/RFQs/suppliers lists, credit ledger view, soft-deactivate users |
 | P8 | Rate limiting | In-memory limiter in `src/lib/rateLimit.ts`; login, RFQ creation, offer submission |
 | P9 | Tests | Unit tests for `matching.ts` scoring and `credits.ts` (vitest); extend smoke to offer/accept/decline + credit charge flows |
@@ -157,7 +156,11 @@ file** for where the previous run left off.
 | P13 | Monitoring | Sentry + PostHog, both strictly opt-in via env vars |
 | P14 | File attachments | `Attachment` model, local `/uploads` in dev, 10 MB cap, PDF/DOCX/XLSX/PNG/JPG |
 | P15 | Supplier directory + reviews | `/suppliers` browse/filter, invite-to-RFQ; buyer rates supplier after DECIDED, rating feeds matching (≤5 pts) |
-| P16 | Legal & data rights | Counsel-reviewed terms/privacy, GDPR data export + account deletion flows, cookie/consent banner if analytics added |
+| P16 | RFQ Q&A thread | Registered suppliers ask clarifying questions on an invite; buyer answers on the RFQ page; thread visible to all invitees; recurring questions feed back into the category's clarify-question template (taxonomy + Category table) |
+| P17 | Supplier monetization | Offer quota: first X offers per supplier free, then registration + paid package required (keep one-click reply for the free quota); paid boost products (e.g. priority placement in the shortlist, marked as sponsored to keep ranking trust) |
+| P18 | Calendar | Deadlines + fulfillment dates view for both sides, reminders for recurring services (e.g. quarterly maintenance), optional mutual availability/booking slots |
+| P19 | Escrow payments | Deposit/advance paid through Procura and held until fulfilment, then released/refunded (Stripe Connect separate-charges-and-transfers; NOTE: payment-institution licensing/legal review required before launch) |
+| P20 | Legal & data rights | Counsel-reviewed terms/privacy, GDPR data export + account deletion flows, cookie/consent banner if analytics added |
 
 ### Demo accounts (seeded)
 
@@ -169,6 +172,27 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-12 — run 7
+
+- **Shipped (P6):** Notifications — `Notification` model + indexed unread
+  query, `src/lib/notifications.ts` (failures never break business flows),
+  events wired: offer received (buyer), offer accepted (supplier company
+  users), RFQ invite (registered supplier users). Bell + unread badge in
+  nav, `/notifications` page (50 latest, unread highlighted, links,
+  mark-all-read action). Welcome email on registration (role-specific next
+  step + passkey tip).
+- **Product feedback applied:** (1) invite email now invites suppliers to
+  register and ask clarifying questions; (2) FREE tier changed from "3
+  active RFQs" to "first 3 RFQs total" (`FREE_TOTAL_RFQS`; closing RFQs no
+  longer frees quota) — pricing page + FAQ updated. New backlog items
+  P16–P19: RFQ Q&A thread (answers feed category templates), supplier
+  offer quota + paid boost, calendar/reminders, escrow via Stripe Connect.
+- **Verified:** build, lint, smoke (9/9) green; notification create/unread/
+  mark-read and total-quota semantics exercised; `/notifications`
+  auth-gated.
+- **Next step:** P7 — admin panel (stats, users/RFQs/suppliers lists,
+  credit ledger view, soft-deactivate).
 
 ### 2026-06-12 — run 6
 

@@ -74,6 +74,33 @@ export async function sendRfqInviteEmail(params: {
       ``,
       `Az ajánlatkérés részletei és az ajánlattétel regisztráció nélkül, egy kattintással elérhető itt:`,
       replyUrl(params.token),
+      ``,
+      `Ha az ajánlatadáshoz további pontosító kérdést tennének fel, regisztráljanak ingyenes ` +
+        `beszállítói fiókot, és küldjék el kérdésüket az ajánlatkérőnek: ${BASE_URL}/register?role=SUPPLIER`,
+      ...FOOTER,
+    ],
+  });
+}
+
+export async function sendWelcomeEmail(params: {
+  to: string;
+  name: string;
+  role: "BUYER" | "SUPPLIER";
+}) {
+  const buyer = params.role === "BUYER";
+  await sendEmail({
+    to: params.to,
+    subject: "Üdvözlünk a Procurán!",
+    lines: [
+      `Kedves ${params.name}!`,
+      ``,
+      `Sikeresen létrehoztad a fiókodat a Procura B2B beszerzési hálózaton.`,
+      ``,
+      buyer
+        ? `Első lépésként írd le egy mondatban, mire van szükséged – a Procura strukturált ajánlatkérést készít belőle, és elküldi a legjobb beszállítóknak: ${BASE_URL}/rfq/new`
+        : `Első lépésként állítsd be a kategóriáidat és régióidat, hogy a hozzád illő ajánlatkéréseket megkapd: ${BASE_URL}/supplier/profile`,
+      ``,
+      `Tipp: a Fiók oldalon passkey-t (ujjlenyomat / arcfelismerés) is beállíthatsz a gyors belépéshez: ${BASE_URL}/account`,
       ...FOOTER,
     ],
   });

@@ -8,7 +8,8 @@ import { db } from "./db";
 import { createSession, destroySession, getSessionUser } from "./auth";
 import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } from "./ai";
 import { shortlistSuppliers } from "./matching";
-import { sendRfqInviteEmail, sendOfferReceivedEmail, sendOfferAcceptedEmail } from "./email";
+import { sendRfqInviteEmail, sendOfferReceivedEmail, sendOfferAcceptedEmail, sendWelcomeEmail } from "./email";
+import { notifyUser, notifyCompanyUsers } from "./notifications";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit, checkInviteLimit } from "./limits";
@@ -45,6 +46,7 @@ export async function registerAction(formData: FormData) {
       companyId: company.id,
     },
   });
+  await sendWelcomeEmail({ to: email, name, role });
   await createSession(user.id);
   redirect(role === "SUPPLIER" ? "/supplier/profile" : "/dashboard");
 }
@@ -204,6 +206,12 @@ export async function sendRfqAction(formData: FormData) {
       summary,
       deadline: deadlineStr,
       token,
+    });
+    await notifyCompanyUsers({
+      companyId: supplier.companyId,
+      type: "RFQ_INVITE",
+      message: `Új ajánlatkérés érkezett: ${rfq.title} (${rfq.company.name})`,
+      linkUrl: `/r/${token}`,
     });
   }
 
@@ -402,6 +410,12 @@ export async function submitOfferAction(formData: FormData) {
       supplierCompany: companyName,
       priceText: `${priceNet.toLocaleString("hu-HU")} Ft (${priceUnit})`,
     });
+    await notifyUser({
+      userId: buyerUser.id,
+      type: "OFFER_RECEIVED",
+      message: `${companyName} ajánlatot adott: ${invite.rfq.title}`,
+      linkUrl: `/rfq/${invite.rfqId}`,
+    });
   }
 
   revalidatePath(`/rfq/${invite.rfqId}`);
@@ -460,6 +474,19 @@ export async function acceptOfferAction(formData: FormData) {
     buyerCompany: offer.rfq.company.name,
     token: offer.invite?.token ?? null,
   });
+  if (offer.invite?.supplierId) {
+    const supplierProfile = await db.supplierProfile.findUnique({
+      where: { id: offer.invite.supplierId },
+    });
+    if (supplierProfile) {
+      await notifyCompanyUsers({
+        companyId: supplierProfile.companyId,
+        type: "OFFER_ACCEPTED",
+        message: `Elfogadták az ajánlatodat: ${offer.rfq.title} (${offer.rfq.company.name})`,
+        linkUrl: offer.invite ? `/r/${offer.invite.token}` : undefined,
+      });
+    }
+  }
 
   revalidatePath(`/rfq/${offer.rfqId}`);
   redirect(`/rfq/${offer.rfqId}`);
@@ -589,6 +616,22 @@ export async function upgradeToProAction() {
   await db.company.update({ where: { id: user.companyId }, data: { plan: "PRO" } });
   revalidatePath("/pricing");
   redirect("/pricing?pro=1");
+}
+
+// ---------- Notifications ----------
+
+export async function markAllNotificationsReadAction() {
+  const user = await getSessionUser();
+  if (!user) redirect("/login?next=/notifications");
+
+  await db.notification.updateMany({
+    where: { userId: user.id, read: false },
+    data: { read: true },
+  });
+
+  revalidatePath("/notifications");
+  revalidatePath("/", "layout");
+  redirect("/notifications");
 }
 
 // ---------- Account / passkeys ----------

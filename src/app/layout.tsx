@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 import { getSessionUser } from "@/lib/auth";
 import { logoutAction } from "@/lib/actions";
+import { unreadNotificationCount } from "@/lib/notifications";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getSessionUser();
+  const unread = user ? await unreadNotificationCount(user.id) : 0;
 
   return (
     <html lang="hu" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
@@ -80,6 +82,20 @@ export default async function RootLayout({
                     Profil
                   </Link>
                 </>
+              )}
+              {user && (
+                <Link
+                  href="/notifications"
+                  className="relative text-slate-600 hover:text-indigo-700"
+                  title="Értesítések"
+                >
+                  🔔
+                  {unread > 0 && (
+                    <span className="absolute -top-1.5 -right-2 bg-rose-600 text-white text-[10px] font-bold rounded-full min-w-4 h-4 px-1 flex items-center justify-center">
+                      {unread > 9 ? "9+" : unread}
+                    </span>
+                  )}
+                </Link>
               )}
               {user && (
                 <Link href="/outbox" className="text-slate-400 hover:text-indigo-700" title="Demo: kimenő e-mailek">

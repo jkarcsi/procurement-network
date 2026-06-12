@@ -16,7 +16,7 @@ const PLANS = [
     cta: { label: "Kezdd el ingyen", href: "/register" },
     highlight: false,
     features: [
-      "Legfeljebb 3 aktív ajánlatkérés",
+      "Az első 3 ajánlatkérés ingyen",
       "Legfeljebb 5 meghívott beszállító ajánlatkérésenként",
       "Intelligens pontosító kérdések",
       "Automatikus beszállítói shortlist",
@@ -42,7 +42,7 @@ const PLANS = [
 const FAQ = [
   {
     q: "Tényleg ingyenes az Alap csomag?",
-    a: "Igen. Az Alap csomag korlátozás nélkül használható időben, csak az egyszerre futó ajánlatkérések és a meghívható beszállítók száma korlátozott.",
+    a: "Igen. Az Alap csomaggal az első 3 ajánlatkérésed ingyenes, ajánlatkérésenként legfeljebb 5 meghívott beszállítóval. Utána a Pro csomaggal folytathatod korlátlanul.",
   },
   {
     q: "A beszállítóknak mennyibe kerül?",
