@@ -2,8 +2,9 @@ import { db } from "@/lib/db";
 import { authenticateApiKey, apiError } from "@/lib/apiAuth";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const company = await authenticateApiKey(req);
-  if (!company) return apiError(401, "Invalid or missing API key");
+  const auth = await authenticateApiKey(req);
+  if (!auth.ok) return apiError(auth.status, auth.message);
+  const company = auth.company;
 
   const { id } = await ctx.params;
   const rfq = await db.rfq.findUnique({

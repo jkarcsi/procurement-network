@@ -25,8 +25,9 @@ function serializeRfq(rfq: {
 }
 
 export async function GET(req: Request) {
-  const company = await authenticateApiKey(req);
-  if (!company) return apiError(401, "Invalid or missing API key");
+  const auth = await authenticateApiKey(req);
+  if (!auth.ok) return apiError(auth.status, auth.message);
+  const company = auth.company;
 
   const status = new URL(req.url).searchParams.get("status") ?? undefined;
   const rfqs = await db.rfq.findMany({
@@ -38,8 +39,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const company = await authenticateApiKey(req);
-  if (!company) return apiError(401, "Invalid or missing API key");
+  const auth = await authenticateApiKey(req);
+  if (!auth.ok) return apiError(auth.status, auth.message);
+  const company = auth.company;
   if (company.type !== "BUYER") return apiError(403, "Only buyer companies can create RFQs");
 
   const limit = await checkRfqCreationLimit(company.id);
@@ -54,6 +56,11 @@ export async function POST(req: Request) {
   const intakeText = String(body.intakeText ?? "").trim();
   if (intakeText.length < 10) return apiError(400, "intakeText must be at least 10 characters");
 
+  const deadline = body.deadline ? new Date(body.deadline) : null;
+  if (deadline && Number.isNaN(deadline.getTime())) {
+    return apiError(400, "deadline must be a valid date (YYYY-MM-DD)");
+  }
+
   const category = body.categoryId
     ? await db.category.findUnique({ where: { id: body.categoryId } })
     : null;
@@ -67,7 +74,7 @@ export async function POST(req: Request) {
       title: String(body.title ?? "").trim() || intakeText.slice(0, 80),
       categoryId: category?.id ?? null,
       regionId: region?.id ?? null,
-      deadline: body.deadline ? new Date(body.deadline) : null,
+      deadline,
       spec: JSON.stringify(spec),
       status: "READY",
       auditLogs: { create: { actor: `api:${company.name}`, event: "RFQ_CREATED", meta: intakeText } },
