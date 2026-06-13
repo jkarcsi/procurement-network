@@ -149,6 +149,10 @@ file** for where the previous run left off.
 
 ### Backlog (priority order — pick from the top)
 
+> Broader product wishlist (many more ideas, same schema): **`BACKLOG.md`**.
+> Growth via cold outreach to non-registered businesses is a separate project:
+> **`docs/lead-discovery-plan.md`** (legal-gated).
+
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
