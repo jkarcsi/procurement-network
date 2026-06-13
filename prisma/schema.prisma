@@ -17,7 +17,19 @@ model User {
   companyId    String?
   company      Company? @relation(fields: [companyId], references: [id])
   notifications Notification[]
+  pushTokens   PushToken[]
   createdAt    DateTime @default(now())
+}
+
+// Expo push token for a user's device, used to deliver push notifications
+// that mirror the in-app notifications. Registered by the mobile app.
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String? // "ios" | "android"
+  createdAt DateTime @default(now())
 }
 
 // In-app notification for core loop events (offer received/accepted, new

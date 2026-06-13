@@ -1,7 +1,9 @@
 import { db } from "./db";
+import { sendPushToUser, sendPushToCompanyUsers } from "./push";
 
-// In-app notifications. Notification failures must never break the business
-// flow that triggered them, so the helpers swallow and log errors.
+// In-app notifications, mirrored to push. Notification failures must never
+// break the business flow that triggered them, so the helpers swallow and
+// log errors.
 
 export async function notifyUser(params: {
   userId: string;
@@ -18,6 +20,12 @@ export async function notifyUser(params: {
         linkUrl: params.linkUrl ?? null,
       },
     });
+    await sendPushToUser(
+      params.userId,
+      "Procura",
+      params.message,
+      params.linkUrl ? { linkUrl: params.linkUrl } : undefined,
+    );
   } catch (err) {
     console.error("notifyUser failed:", err);
   }
@@ -40,6 +48,12 @@ export async function notifyCompanyUsers(params: {
         linkUrl: params.linkUrl ?? null,
       })),
     });
+    await sendPushToCompanyUsers(
+      params.companyId,
+      "Procura",
+      params.message,
+      params.linkUrl ? { linkUrl: params.linkUrl } : undefined,
+    );
   } catch (err) {
     console.error("notifyCompanyUsers failed:", err);
   }
