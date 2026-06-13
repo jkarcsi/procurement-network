@@ -1,15 +1,17 @@
 import React, { useState } from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, SafeAreaView } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "./src/AuthContext";
 import LoginScreen from "./src/screens/LoginScreen";
 import LockScreen from "./src/screens/LockScreen";
 import RfqListScreen from "./src/screens/RfqListScreen";
 import RfqDetailScreen from "./src/screens/RfqDetailScreen";
+import NotificationsScreen from "./src/screens/NotificationsScreen";
 
-// Minimal route state: the signed-in stack is just list ↔ detail, so a
-// dedicated navigation library would be overkill for this skeleton.
-function SignedInStack() {
+type TabKey = "rfqs" | "notifications";
+
+// The RFQ tab is itself a tiny list ↔ detail stack.
+function RfqTab() {
   const [openRfqId, setOpenRfqId] = useState<string | null>(null);
   return openRfqId ? (
     <RfqDetailScreen id={openRfqId} onBack={() => setOpenRfqId(null)} />
@@ -18,9 +20,35 @@ function SignedInStack() {
   );
 }
 
+function SignedInApp() {
+  const { user } = useAuth();
+  const isBuyer = user?.role === "BUYER";
+  const tabs: { key: TabKey; label: string; icon: string }[] = [
+    { key: "rfqs", label: isBuyer ? "Ajánlatkérések" : "Megkeresések", icon: "📋" },
+    { key: "notifications", label: "Értesítések", icon: "🔔" },
+  ];
+  const [tab, setTab] = useState<TabKey>("rfqs");
+
+  return (
+    <View style={styles.flex}>
+      <View style={styles.flex}>
+        {tab === "rfqs" && <RfqTab />}
+        {tab === "notifications" && <NotificationsScreen />}
+      </View>
+      <View style={styles.tabBar}>
+        {tabs.map((t) => (
+          <TouchableOpacity key={t.key} style={styles.tab} onPress={() => setTab(t.key)}>
+            <Text style={styles.tabIcon}>{t.icon}</Text>
+            <Text style={[styles.tabLabel, tab === t.key && styles.tabLabelActive]}>{t.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function Root() {
   const { status } = useAuth();
-
   if (status === "loading") {
     return (
       <View style={styles.center}>
@@ -30,18 +58,26 @@ function Root() {
   }
   if (status === "signedOut") return <LoginScreen />;
   if (status === "locked") return <LockScreen />;
-  return <SignedInStack />;
+  return <SignedInApp />;
 }
 
 export default function App() {
   return (
     <AuthProvider>
       <StatusBar style="dark" />
-      <Root />
+      <SafeAreaView style={styles.flex}>
+        <Root />
+      </SafeAreaView>
     </AuthProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: "#f8fafc" },
   center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" },
+  tabBar: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#e2e8f0", backgroundColor: "#fff" },
+  tab: { flex: 1, alignItems: "center", paddingVertical: 10 },
+  tabIcon: { fontSize: 20 },
+  tabLabel: { fontSize: 11, color: "#94a3b8", marginTop: 2 },
+  tabLabelActive: { color: "#4f46e5", fontWeight: "600" },
 });

@@ -62,3 +62,24 @@ export function getRfq(token: string, id: string) {
     token,
   );
 }
+
+export type Notification = {
+  id: string;
+  type: string;
+  message: string;
+  linkUrl: string | null;
+  read: boolean;
+  createdAt: string;
+};
+
+export function listNotifications(token: string) {
+  return request<{ data: Notification[]; unread: number }>(
+    "/api/v1/notifications",
+    { method: "GET" },
+    token,
+  );
+}
+
+export function markNotificationsRead(token: string) {
+  return request<{ ok: boolean }>("/api/v1/notifications", { method: "POST" }, token);
+}
