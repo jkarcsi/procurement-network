@@ -88,6 +88,34 @@ export async function GET() {
           responses: { "200": { description: "RFQ detail" }, "404": { description: "Not found" } },
         },
       },
+      "/api/v1/rfqs/{id}/shortlist": {
+        get: {
+          summary: "Ranked supplier shortlist for a READY RFQ (buyer)",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: { "200": { description: "Shortlist" }, "404": { description: "Not found" } },
+        },
+      },
+      "/api/v1/rfqs/{id}/send": {
+        post: {
+          summary: "Send a READY RFQ to selected suppliers (buyer)",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    supplierIds: { type: "array", items: { type: "string" } },
+                    extraEmails: { type: "array", items: { type: "string" } },
+                  },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "Sent" }, "400": { description: "Not sendable / no recipients" }, "403": { description: "Not a buyer" } },
+        },
+      },
       "/api/v1/offers/{id}/accept": {
         post: {
           summary: "Buyer accepts an offer (decides the RFQ)",

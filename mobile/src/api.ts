@@ -119,6 +119,32 @@ export function acceptOffer(token: string, offerId: string) {
   );
 }
 
+export type ShortlistMatch = {
+  supplierId: string;
+  companyName: string;
+  score: number;
+  reason: string;
+  certifications: string | null;
+  regionNames: string[];
+  responseRate: number | null;
+};
+
+export function getShortlist(token: string, rfqId: string) {
+  return request<{ data: ShortlistMatch[] }>(
+    `/api/v1/rfqs/${rfqId}/shortlist`,
+    { method: "GET" },
+    token,
+  );
+}
+
+export function sendRfq(token: string, rfqId: string, supplierIds: string[]) {
+  return request<{ ok: boolean; rfqId: string }>(
+    `/api/v1/rfqs/${rfqId}/send`,
+    { method: "POST", body: JSON.stringify({ supplierIds }) },
+    token,
+  );
+}
+
 export type Option = { id: string; name: string };
 
 export function getTaxonomy(token: string) {

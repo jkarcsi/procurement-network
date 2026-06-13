@@ -9,12 +9,12 @@ import { db } from "./db";
 import { createSession, destroySession, getSessionUser } from "./auth";
 import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } from "./ai";
 import { shortlistSuppliers } from "./matching";
-import { sendRfqInviteEmail, sendWelcomeEmail } from "./email";
-import { notifyCompanyUsers } from "./notifications";
+import { sendWelcomeEmail } from "./email";
 import { acceptOffer, submitOffer } from "./offers";
+import { sendRfq } from "./rfqs";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
-import { checkRfqCreationLimit, checkInviteLimit } from "./limits";
+import { checkRfqCreationLimit } from "./limits";
 import { rateLimit, RATE_LIMIT_MESSAGE } from "./rateLimit";
 import { track } from "./analytics";
 
@@ -162,117 +162,21 @@ export async function sendRfqAction(formData: FormData) {
   if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
 
   const rfqId = String(formData.get("rfqId") ?? "");
-  const rfq = await db.rfq.findUnique({
-    where: { id: rfqId },
-    include: { company: true, category: true },
-  });
-  if (!rfq || rfq.companyId !== user.companyId || rfq.status !== "READY") {
-    redirect(`/rfq/${rfqId}`);
-  }
-
   const supplierIds = formData.getAll("supplierIds").map(String);
   const extraEmails = String(formData.get("extraEmails") ?? "")
     .split(/[\n,;]+/)
     .map((e) => e.trim())
-    .filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+    .filter(Boolean);
 
-  if (supplierIds.length === 0 && extraEmails.length === 0) {
-    redirect(`/rfq/${rfqId}?error=${encodeURIComponent("Válassz legalább egy beszállítót vagy adj meg e-mail címet.")}`);
-  }
+  const result = await sendRfq(
+    rfqId,
+    { id: user.id, email: user.email, companyId: user.companyId },
+    { supplierIds, extraEmails },
+  );
+  if (!result.ok) redirect(`/rfq/${rfqId}?error=${encodeURIComponent(result.error)}`);
 
-  const limit = await checkInviteLimit(user.companyId, supplierIds.length + extraEmails.length);
-  if (!limit.ok) {
-    redirect(`/rfq/${rfqId}?error=${encodeURIComponent(limit.error)}`);
-  }
-
-  const spec = rfq.spec ? (JSON.parse(rfq.spec) as { summary?: string }) : {};
-  const summary = spec.summary ?? rfq.intakeText;
-  const deadlineStr = rfq.deadline ? rfq.deadline.toISOString().slice(0, 10) : null;
-
-  // Recompute scores for the audit trail
-  const matches = rfq.categoryId
-    ? await shortlistSuppliers(rfq.categoryId, rfq.regionId, 100)
-    : [];
-
-  for (const supplierId of supplierIds) {
-    const supplier = await db.supplierProfile.findUnique({
-      where: { id: supplierId },
-      include: { company: true },
-    });
-    if (!supplier) continue;
-    const match = matches.find((m) => m.supplierId === supplierId);
-    const token = crypto.randomBytes(24).toString("base64url");
-    await db.rfqInvite.create({
-      data: {
-        rfqId: rfq.id,
-        supplierId: supplier.id,
-        email: supplier.email,
-        companyName: supplier.company.name,
-        token,
-        matchScore: match?.score ?? null,
-        matchReason: match?.reason ?? null,
-      },
-    });
-    await db.supplierProfile.update({
-      where: { id: supplier.id },
-      data: { inviteCount: { increment: 1 } },
-    });
-    await sendRfqInviteEmail({
-      to: supplier.email,
-      companyName: supplier.company.name,
-      rfqId: rfq.id,
-      rfqTitle: rfq.title,
-      buyerCompany: rfq.company.name,
-      summary,
-      deadline: deadlineStr,
-      token,
-    });
-    await notifyCompanyUsers({
-      companyId: supplier.companyId,
-      type: "RFQ_INVITE",
-      message: `Új ajánlatkérés érkezett: ${rfq.title} (${rfq.company.name})`,
-      linkUrl: `/r/${token}`,
-    });
-  }
-
-  for (const email of extraEmails) {
-    const token = crypto.randomBytes(24).toString("base64url");
-    await db.rfqInvite.create({
-      data: {
-        rfqId: rfq.id,
-        email,
-        companyName: email,
-        token,
-        matchReason: "kézzel hozzáadott külső beszállító",
-      },
-    });
-    await sendRfqInviteEmail({
-      to: email,
-      companyName: email,
-      rfqId: rfq.id,
-      rfqTitle: rfq.title,
-      buyerCompany: rfq.company.name,
-      summary,
-      deadline: deadlineStr,
-      token,
-    });
-  }
-
-  await db.rfq.update({ where: { id: rfq.id }, data: { status: "SENT" } });
-  await db.auditLog.create({
-    data: {
-      rfqId: rfq.id,
-      actor: user.email,
-      event: "RFQ_SENT",
-      meta: `${supplierIds.length} hálózati + ${extraEmails.length} külső beszállító`,
-    },
-  });
-  await track("rfq_sent", user.id, {
-    invites: supplierIds.length + extraEmails.length,
-  });
-
-  revalidatePath(`/rfq/${rfq.id}`);
-  redirect(`/rfq/${rfq.id}`);
+  revalidatePath(`/rfq/${result.rfqId}`);
+  redirect(`/rfq/${result.rfqId}`);
 }
 
 // ---------- Supplier application to an open opportunity ----------

@@ -172,6 +172,23 @@ file** for where the previous run left off.
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
 
+### 2026-06-13 — run 16
+
+- **Shipped (P11 — mobile RFQ send-out):** closed the biggest buyer-loop gap
+  — a mobile-created RFQ (status READY) can now be sent to suppliers.
+  Extracted `sendRfq` into `src/lib/rfqs.ts` (invites, emails, RFQ_INVITE
+  notifications, audit, analytics, FREE invite-limit) as the single source of
+  truth; refactored `sendRfqAction` to call it. New API:
+  `GET /api/v1/rfqs/[id]/shortlist`, `POST /api/v1/rfqs/[id]/send`. Mobile
+  RFQ detail now shows the ranked shortlist with checkboxes + a Kiküldés
+  button for READY RFQs (offers/accept view for SENT/DECIDED). OpenAPI updated.
+- **Verified:** web build, lint, tests (9/9), smoke (9/9); live: shortlist
+  ranked (top 98p), send creates invites + sets SENT, re-send 400, empty
+  selection 400, supplier 403.
+- **Next step:** mobile open-opportunities (supplier self-apply) or supplier
+  profile editing; then push tap-to-navigate + EAS build. Counsel review of
+  terms/privacy stays human.
+
 ### 2026-06-13 — run 15
 
 - **Docs:** README gained a Mobile app section (how to start the Expo app,
