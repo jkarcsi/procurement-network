@@ -172,6 +172,22 @@ file** for where the previous run left off.
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
 
+### 2026-06-13 — run 17
+
+- **Shipped (P11 — supplier open opportunities):** suppliers can now browse
+  matching live RFQs and self-apply from the app, completing the supplier
+  acquisition loop on mobile. Extracted `joinOpenRfq` into `src/lib/rfqs.ts`
+  (category+region guard, dedupe, SELF invite, audit) as the single source of
+  truth; refactored `joinOpenRfqAction` to call it. New API:
+  `GET /api/v1/opportunities`, `POST /api/v1/opportunities/[id]/join`. Mobile:
+  new "Lehetőségek" tab (supplier) → list + Jelentkezem; after joining, the
+  invite appears under Megkeresések for offer submission. OpenAPI updated.
+- **Verified:** web build, lint, tests (9/9), smoke (9/9); live: list matches,
+  join creates SELF invite + drops from list, re-join idempotent 200, buyer
+  403. With this, the whole web RFQ loop now also runs from the mobile app.
+- **Next step:** mobile supplier profile editing, push tap-to-navigate, or
+  EAS/store build; final UI-polish + counsel review of terms/privacy (human).
+
 ### 2026-06-13 — run 16
 
 - **Shipped (P11 — mobile RFQ send-out):** closed the biggest buyer-loop gap

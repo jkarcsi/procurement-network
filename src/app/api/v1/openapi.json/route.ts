@@ -154,6 +154,19 @@ export async function GET() {
           responses: { "200": { description: "Submitted" }, "400": { description: "Invalid / already offered" } },
         },
       },
+      "/api/v1/opportunities": {
+        get: {
+          summary: "Open RFQs matching the supplier's profile (self-apply targets)",
+          responses: { "200": { description: "Opportunities" }, "403": { description: "Not a supplier" } },
+        },
+      },
+      "/api/v1/opportunities/{id}/join": {
+        post: {
+          summary: "Supplier self-applies to an open RFQ (returns the reply token)",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: { "200": { description: "Joined" }, "400": { description: "Not eligible" }, "403": { description: "Not a supplier" } },
+        },
+      },
       "/api/v1/notifications": {
         get: { summary: "List notifications + unread count (session token)", responses: { "200": { description: "Notifications" } } },
         post: { summary: "Mark all notifications read", responses: { "200": { description: "OK" } } },

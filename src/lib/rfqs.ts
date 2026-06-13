@@ -119,3 +119,74 @@ export async function sendRfq(
 
   return { ok: true, rfqId: rfq.id };
 }
+
+// A supplier self-applies to a live, matching RFQ (no invitation). Shared by
+// the web action and the mobile API; returns the (new or existing) reply token.
+export type JoinResult = { ok: true; token: string } | { ok: false; error: string };
+
+export async function joinOpenRfq(
+  rfqId: string,
+  supplier: { id: string; email: string; nationwide: boolean; companyName: string },
+): Promise<JoinResult> {
+  const rfq = await db.rfq.findUnique({ where: { id: rfqId } });
+  if (!rfq || rfq.status !== "SENT" || (rfq.deadline && rfq.deadline < new Date())) {
+    return { ok: false, error: "Ez az ajánlatkérés már nem elérhető." };
+  }
+
+  const categoryMatch = rfq.categoryId
+    ? await db.supplierCategory.findUnique({
+        where: { supplierId_categoryId: { supplierId: supplier.id, categoryId: rfq.categoryId } },
+      })
+    : null;
+  if (!categoryMatch) {
+    return { ok: false, error: "Ez az ajánlatkérés nem illeszkedik a profilod kategóriáihoz." };
+  }
+
+  // Mirror the region filter of findOpenRfqsForSupplier so a direct call can't
+  // bypass it either.
+  const regionMatch =
+    !rfq.regionId ||
+    supplier.nationwide ||
+    Boolean(
+      await db.supplierRegion.findUnique({
+        where: { supplierId_regionId: { supplierId: supplier.id, regionId: rfq.regionId } },
+      }),
+    );
+  if (!regionMatch) {
+    return { ok: false, error: "Ez az ajánlatkérés nem illeszkedik a profilod régióihoz." };
+  }
+
+  const existing = await db.rfqInvite.findFirst({ where: { rfqId: rfq.id, supplierId: supplier.id } });
+  if (existing) return { ok: true, token: existing.token };
+
+  const matches = await shortlistSuppliers(rfq.categoryId!, rfq.regionId, 1000);
+  const match = matches.find((m) => m.supplierId === supplier.id);
+  const token = crypto.randomBytes(24).toString("base64url");
+
+  await db.rfqInvite.create({
+    data: {
+      rfqId: rfq.id,
+      supplierId: supplier.id,
+      email: supplier.email,
+      companyName: supplier.companyName,
+      token,
+      source: "SELF",
+      matchScore: match?.score ?? null,
+      matchReason: match ? `saját jelentkezés – ${match.reason}` : "saját jelentkezés nyílt lehetőségre",
+    },
+  });
+  await db.supplierProfile.update({
+    where: { id: supplier.id },
+    data: { inviteCount: { increment: 1 } },
+  });
+  await db.auditLog.create({
+    data: {
+      rfqId: rfq.id,
+      actor: supplier.email,
+      event: "SUPPLIER_JOINED",
+      meta: `${supplier.companyName} jelentkezett a nyílt lehetőségre`,
+    },
+  });
+
+  return { ok: true, token };
+}

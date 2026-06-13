@@ -8,10 +8,9 @@ import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { createSession, destroySession, getSessionUser } from "./auth";
 import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } from "./ai";
-import { shortlistSuppliers } from "./matching";
 import { sendWelcomeEmail } from "./email";
 import { acceptOffer, submitOffer } from "./offers";
-import { sendRfq } from "./rfqs";
+import { sendRfq, joinOpenRfq } from "./rfqs";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit } from "./limits";
@@ -189,76 +188,18 @@ export async function joinOpenRfqAction(formData: FormData) {
   }
 
   const rfqId = String(formData.get("rfqId") ?? "");
-  const rfq = await db.rfq.findUnique({ where: { id: rfqId } });
-  if (!rfq || rfq.status !== "SENT" || (rfq.deadline && rfq.deadline < new Date())) {
-    redirect(
-      `/supplier/opportunities?error=${encodeURIComponent("Ez az ajánlatkérés már nem elérhető.")}`,
-    );
+  const result = await joinOpenRfq(rfqId, {
+    id: profile.id,
+    email: profile.email,
+    nationwide: profile.nationwide,
+    companyName: user.company?.name ?? profile.email,
+  });
+  if (!result.ok) {
+    redirect(`/supplier/opportunities?error=${encodeURIComponent(result.error)}`);
   }
 
-  const categoryMatch = rfq.categoryId
-    ? await db.supplierCategory.findUnique({
-        where: { supplierId_categoryId: { supplierId: profile.id, categoryId: rfq.categoryId } },
-      })
-    : null;
-  if (!categoryMatch) {
-    redirect(
-      `/supplier/opportunities?error=${encodeURIComponent("Ez az ajánlatkérés nem illeszkedik a profilod kategóriáihoz.")}`,
-    );
-  }
-
-  // Mirror the region filter of findOpenRfqsForSupplier: the listing hides
-  // out-of-region RFQs, so a hand-crafted POST must not bypass it either.
-  const regionMatch =
-    !rfq.regionId ||
-    profile.nationwide ||
-    Boolean(
-      await db.supplierRegion.findUnique({
-        where: { supplierId_regionId: { supplierId: profile.id, regionId: rfq.regionId } },
-      }),
-    );
-  if (!regionMatch) {
-    redirect(
-      `/supplier/opportunities?error=${encodeURIComponent("Ez az ajánlatkérés nem illeszkedik a profilod régióihoz.")}`,
-    );
-  }
-
-  const existing = await db.rfqInvite.findFirst({
-    where: { rfqId: rfq.id, supplierId: profile.id },
-  });
-  if (existing) redirect(`/r/${existing.token}`);
-
-  const matches = await shortlistSuppliers(rfq.categoryId!, rfq.regionId, 1000);
-  const match = matches.find((m) => m.supplierId === profile.id);
-  const token = crypto.randomBytes(24).toString("base64url");
-
-  await db.rfqInvite.create({
-    data: {
-      rfqId: rfq.id,
-      supplierId: profile.id,
-      email: profile.email,
-      companyName: user.company?.name ?? profile.email,
-      token,
-      source: "SELF",
-      matchScore: match?.score ?? null,
-      matchReason: match ? `saját jelentkezés – ${match.reason}` : "saját jelentkezés nyílt lehetőségre",
-    },
-  });
-  await db.supplierProfile.update({
-    where: { id: profile.id },
-    data: { inviteCount: { increment: 1 } },
-  });
-  await db.auditLog.create({
-    data: {
-      rfqId: rfq.id,
-      actor: profile.email,
-      event: "SUPPLIER_JOINED",
-      meta: `${user.company?.name ?? profile.email} jelentkezett a nyílt lehetőségre`,
-    },
-  });
-
-  revalidatePath(`/rfq/${rfq.id}`);
-  redirect(`/r/${token}`);
+  revalidatePath(`/rfq/${rfqId}`);
+  redirect(`/r/${result.token}`);
 }
 
 // ---------- Supplier reply (public, token-based) ----------

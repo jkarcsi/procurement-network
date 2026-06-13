@@ -196,6 +196,29 @@ export function submitInviteOffer(
   );
 }
 
+export type Opportunity = {
+  id: string;
+  title: string;
+  summary: string;
+  category: string | null;
+  region: string | null;
+  buyer: string;
+  deadline: string | null;
+  createdAt: string;
+};
+
+export function listOpportunities(token: string) {
+  return request<{ data: Opportunity[] }>("/api/v1/opportunities", { method: "GET" }, token);
+}
+
+export function joinOpportunity(token: string, rfqId: string) {
+  return request<{ ok: boolean; token: string }>(
+    `/api/v1/opportunities/${rfqId}/join`,
+    { method: "POST" },
+    token,
+  );
+}
+
 export function registerPushToken(sessionToken: string, expoToken: string, platform: string) {
   return request<{ ok: boolean }>(
     "/api/v1/push",

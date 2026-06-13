@@ -11,9 +11,10 @@ import NotificationsScreen from "./src/screens/NotificationsScreen";
 import CreditsScreen from "./src/screens/CreditsScreen";
 import SupplierInvitesScreen from "./src/screens/SupplierInvitesScreen";
 import SupplierInviteDetailScreen from "./src/screens/SupplierInviteDetailScreen";
+import SupplierOpportunitiesScreen from "./src/screens/SupplierOpportunitiesScreen";
 import type { Invite } from "./src/api";
 
-type TabKey = "rfqs" | "notifications" | "credits";
+type TabKey = "rfqs" | "opportunities" | "notifications" | "credits";
 type RfqView = { mode: "list" } | { mode: "detail"; id: string } | { mode: "new" };
 
 // Buyer's RFQ tab: list ↔ detail ↔ new stack.
@@ -60,6 +61,7 @@ function SignedInApp() {
   const isBuyer = user?.role === "BUYER";
   const tabs: { key: TabKey; label: string; icon: string }[] = [
     { key: "rfqs", label: isBuyer ? "Ajánlatkérések" : "Megkeresések", icon: "📋" },
+    ...(isBuyer ? [] : [{ key: "opportunities" as const, label: "Lehetőségek", icon: "🔎" }]),
     { key: "notifications", label: "Értesítések", icon: "🔔" },
     ...(isBuyer ? [{ key: "credits" as const, label: "Kreditek", icon: "🪙" }] : []),
   ];
@@ -69,6 +71,7 @@ function SignedInApp() {
     <View style={styles.flex}>
       <View style={styles.flex}>
         {tab === "rfqs" && (isBuyer ? <RfqTab /> : <SupplierTab />)}
+        {tab === "opportunities" && <SupplierOpportunitiesScreen />}
         {tab === "notifications" && <NotificationsScreen />}
         {tab === "credits" && <CreditsScreen />}
       </View>
