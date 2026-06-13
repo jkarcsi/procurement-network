@@ -713,7 +713,6 @@ export async function deleteAccountAction(formData: FormData) {
     redirect(`/account?error=${encodeURIComponent("A megerősítéshez írd be pontosan a fiók e-mail címét.")}`);
   }
 
-  await db.passkey.deleteMany({ where: { userId: user.id } });
   await db.notification.deleteMany({ where: { userId: user.id } });
   await db.user.update({
     where: { id: user.id },
@@ -730,19 +729,6 @@ export async function deleteAccountAction(formData: FormData) {
 
   await destroySession();
   redirect("/?deleted=1");
-}
-
-// ---------- Account / passkeys ----------
-
-export async function deletePasskeyAction(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login?next=/account");
-
-  const passkeyId = String(formData.get("passkeyId") ?? "");
-  await db.passkey.deleteMany({ where: { id: passkeyId, userId: user.id } });
-
-  revalidatePath("/account");
-  redirect("/account");
 }
 
 // ---------- Supplier profile ----------

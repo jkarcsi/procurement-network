@@ -7,7 +7,7 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return Response.json({ error: "unauthorized" }, { status: 401 });
 
-  const [rfqs, supplierData, creditLedger, notifications, passkeys, apiKeys] = await Promise.all([
+  const [rfqs, supplierData, creditLedger, notifications, apiKeys] = await Promise.all([
     user.companyId
       ? db.rfq.findMany({
           where: { companyId: user.companyId },
@@ -28,10 +28,6 @@ export async function GET() {
       ? db.creditTransaction.findMany({ where: { companyId: user.companyId } })
       : Promise.resolve([]),
     db.notification.findMany({ where: { userId: user.id } }),
-    db.passkey.findMany({
-      where: { userId: user.id },
-      select: { name: true, createdAt: true, lastUsedAt: true },
-    }),
     user.companyId
       ? db.apiKey.findMany({
           where: { companyId: user.companyId },
@@ -50,7 +46,6 @@ export async function GET() {
     supplierProfile: supplierData,
     creditLedger,
     notifications,
-    passkeys,
     apiKeys,
   };
 
