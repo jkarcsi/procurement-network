@@ -6,18 +6,29 @@ import LoginScreen from "./src/screens/LoginScreen";
 import LockScreen from "./src/screens/LockScreen";
 import RfqListScreen from "./src/screens/RfqListScreen";
 import RfqDetailScreen from "./src/screens/RfqDetailScreen";
+import NewRfqScreen from "./src/screens/NewRfqScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import CreditsScreen from "./src/screens/CreditsScreen";
 
 type TabKey = "rfqs" | "notifications" | "credits";
+type RfqView = { mode: "list" } | { mode: "detail"; id: string } | { mode: "new" };
 
-// The RFQ tab is itself a tiny list ↔ detail stack.
+// The RFQ tab is itself a tiny list ↔ detail ↔ new stack.
 function RfqTab() {
-  const [openRfqId, setOpenRfqId] = useState<string | null>(null);
-  return openRfqId ? (
-    <RfqDetailScreen id={openRfqId} onBack={() => setOpenRfqId(null)} />
-  ) : (
-    <RfqListScreen onOpen={setOpenRfqId} />
+  const [view, setView] = useState<RfqView>({ mode: "list" });
+  if (view.mode === "detail") {
+    return <RfqDetailScreen id={view.id} onBack={() => setView({ mode: "list" })} />;
+  }
+  if (view.mode === "new") {
+    return (
+      <NewRfqScreen onDone={() => setView({ mode: "list" })} onCancel={() => setView({ mode: "list" })} />
+    );
+  }
+  return (
+    <RfqListScreen
+      onOpen={(id) => setView({ mode: "detail", id })}
+      onNew={() => setView({ mode: "new" })}
+    />
   );
 }
 

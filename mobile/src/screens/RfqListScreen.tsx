@@ -10,7 +10,13 @@ const STATUS_LABEL: Record<string, string> = {
   CLOSED: "Lezárva",
 };
 
-export default function RfqListScreen({ onOpen }: { onOpen: (id: string) => void }) {
+export default function RfqListScreen({
+  onOpen,
+  onNew,
+}: {
+  onOpen: (id: string) => void;
+  onNew: () => void;
+}) {
   const { token, company, user, signOut } = useAuth();
   const [rfqs, setRfqs] = useState<api.Rfq[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,6 +56,12 @@ export default function RfqListScreen({ onOpen }: { onOpen: (id: string) => void
 
       {error && <Text style={styles.error}>{error}</Text>}
 
+      {user?.role === "BUYER" && (
+        <TouchableOpacity style={styles.newButton} onPress={onNew}>
+          <Text style={styles.newButtonText}>+ Új ajánlatkérés</Text>
+        </TouchableOpacity>
+      )}
+
       <FlatList
         data={rfqs}
         keyExtractor={(item) => item.id}
@@ -80,6 +92,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: "bold", color: "#0f172a" },
   subtitle: { fontSize: 13, color: "#64748b", marginTop: 2 },
   signOut: { color: "#4f46e5", fontWeight: "600" },
+  newButton: { backgroundColor: "#4f46e5", borderRadius: 12, padding: 14, alignItems: "center", marginBottom: 12 },
+  newButtonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
   card: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: "#e2e8f0" },
   cardTitle: { fontSize: 16, fontWeight: "600", color: "#0f172a" },
   cardStatus: { fontSize: 13, color: "#4f46e5", marginTop: 4 },

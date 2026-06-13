@@ -118,3 +118,20 @@ export function acceptOffer(token: string, offerId: string) {
     token,
   );
 }
+
+export type Option = { id: string; name: string };
+
+export function getTaxonomy(token: string) {
+  return request<{ categories: Option[]; regions: Option[] }>(
+    "/api/v1/taxonomy",
+    { method: "GET" },
+    token,
+  );
+}
+
+export function createRfq(
+  token: string,
+  body: { intakeText: string; title?: string; categoryId?: string; regionId?: string },
+) {
+  return request<{ data: Rfq }>("/api/v1/rfqs", { method: "POST", body: JSON.stringify(body) }, token);
+}
