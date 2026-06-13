@@ -83,3 +83,30 @@ export function listNotifications(token: string) {
 export function markNotificationsRead(token: string) {
   return request<{ ok: boolean }>("/api/v1/notifications", { method: "POST" }, token);
 }
+
+export type CreditPackage = { id: string; credits: number; priceHuf: number; name: string };
+export type CreditTransaction = {
+  id: string;
+  amount: number;
+  balanceAfter: number;
+  type: string;
+  description: string;
+  createdAt: string;
+};
+
+export function getCredits(token: string) {
+  return request<{
+    balance: number;
+    comparisonCost: number;
+    packages: CreditPackage[];
+    transactions: CreditTransaction[];
+  }>("/api/v1/credits", { method: "GET" }, token);
+}
+
+export function purchaseCredits(token: string, packageId: string) {
+  return request<{ checkoutUrl?: string; granted?: boolean; balance?: number }>(
+    "/api/v1/credits/purchase",
+    { method: "POST", body: JSON.stringify({ packageId }) },
+    token,
+  );
+}

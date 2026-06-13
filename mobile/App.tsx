@@ -7,8 +7,9 @@ import LockScreen from "./src/screens/LockScreen";
 import RfqListScreen from "./src/screens/RfqListScreen";
 import RfqDetailScreen from "./src/screens/RfqDetailScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
+import CreditsScreen from "./src/screens/CreditsScreen";
 
-type TabKey = "rfqs" | "notifications";
+type TabKey = "rfqs" | "notifications" | "credits";
 
 // The RFQ tab is itself a tiny list ↔ detail stack.
 function RfqTab() {
@@ -26,6 +27,7 @@ function SignedInApp() {
   const tabs: { key: TabKey; label: string; icon: string }[] = [
     { key: "rfqs", label: isBuyer ? "Ajánlatkérések" : "Megkeresések", icon: "📋" },
     { key: "notifications", label: "Értesítések", icon: "🔔" },
+    ...(isBuyer ? [{ key: "credits" as const, label: "Kreditek", icon: "🪙" }] : []),
   ];
   const [tab, setTab] = useState<TabKey>("rfqs");
 
@@ -34,6 +36,7 @@ function SignedInApp() {
       <View style={styles.flex}>
         {tab === "rfqs" && <RfqTab />}
         {tab === "notifications" && <NotificationsScreen />}
+        {tab === "credits" && <CreditsScreen />}
       </View>
       <View style={styles.tabBar}>
         {tabs.map((t) => (
