@@ -72,6 +72,30 @@ report's "one-click reply, optional registration" principle).
 | `/supplier/profile` | Supplier profile: categories, regions, certifications |
 | `/outbox` | Demo outgoing emails |
 
+## Mobile app
+
+A native companion app (Expo / React Native) lives in [`mobile/`](mobile/README.md)
+and runs on the public API (`/api/v1`). **Biometric sign-in (Face ID / Touch ID /
+fingerprint) is mobile-only** — the desktop web uses email + password.
+
+```bash
+cd mobile
+npm install            # or: npx expo install  (reconciles native versions)
+npm start              # open in Expo Go or a dev build
+```
+
+Point the app at the API in `mobile/app.json` → `expo.extra.apiBaseUrl`
+(default `http://localhost:3000`; on a physical device use your machine's LAN
+IP or a deployed HTTPS URL, not `localhost`). The backend must be running
+(`npm run dev`) and seeded.
+
+What it covers: email+password login → a session token saved in the device
+keychain and unlocked by biometrics on each launch; buyers get the RFQ
+list/detail, RFQ creation, and offer acceptance plus credit balance/purchase;
+suppliers get their invites and offer submission; both get notifications. See
+[`mobile/README.md`](mobile/README.md) for the architecture and the token +
+biometric flow.
+
 ## Architecture
 
 - **Next.js 16** (App Router, server actions, Turbopack) + **React 19** + **Tailwind 4**
@@ -90,8 +114,9 @@ report's "one-click reply, optional registration" principle).
 - **CI**: `.github/workflows/ci.yml` runs lint + build + unit tests + smoke
   on every PR and push to main.
 - **Required env vars in production**: `DATABASE_URL`, `AUTH_SECRET` (strong
-  random), `NEXT_PUBLIC_BASE_URL` (HTTPS origin — passkeys/WebAuthn derive the
-  relying-party ID from it). Optional: `ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL`
+  random — signs the session token used by both the web cookie and the mobile
+  app), `NEXT_PUBLIC_BASE_URL` (HTTPS origin used in email reply links and as
+  the mobile API base). Optional: `ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL`
   (analysis quality), `RESEND_API_KEY`/`EMAIL_FROM` (real email),
   `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` (payments, test mode only).
 
