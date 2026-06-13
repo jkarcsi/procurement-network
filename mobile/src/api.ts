@@ -135,3 +135,37 @@ export function createRfq(
 ) {
   return request<{ data: Rfq }>("/api/v1/rfqs", { method: "POST", body: JSON.stringify(body) }, token);
 }
+
+export type Invite = {
+  id: string;
+  status: string;
+  source: string;
+  sentAt: string;
+  rfq: {
+    id: string;
+    title: string;
+    status: string;
+    summary: string;
+    category: string | null;
+    region: string | null;
+    buyer: string;
+    deadline: string | null;
+  };
+  offer: { priceNet: number; priceUnit: string; status: string } | null;
+};
+
+export function listInvites(token: string) {
+  return request<{ data: Invite[] }>("/api/v1/invites", { method: "GET" }, token);
+}
+
+export function submitInviteOffer(
+  token: string,
+  inviteId: string,
+  body: { priceNet: number; priceUnit?: string; startDate?: string; validUntil?: string; notes?: string },
+) {
+  return request<{ ok: boolean }>(
+    `/api/v1/invites/${inviteId}/offer`,
+    { method: "POST", body: JSON.stringify(body) },
+    token,
+  );
+}

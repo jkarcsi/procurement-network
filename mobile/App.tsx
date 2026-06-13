@@ -9,11 +9,14 @@ import RfqDetailScreen from "./src/screens/RfqDetailScreen";
 import NewRfqScreen from "./src/screens/NewRfqScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import CreditsScreen from "./src/screens/CreditsScreen";
+import SupplierInvitesScreen from "./src/screens/SupplierInvitesScreen";
+import SupplierInviteDetailScreen from "./src/screens/SupplierInviteDetailScreen";
+import type { Invite } from "./src/api";
 
 type TabKey = "rfqs" | "notifications" | "credits";
 type RfqView = { mode: "list" } | { mode: "detail"; id: string } | { mode: "new" };
 
-// The RFQ tab is itself a tiny list ↔ detail ↔ new stack.
+// Buyer's RFQ tab: list ↔ detail ↔ new stack.
 function RfqTab() {
   const [view, setView] = useState<RfqView>({ mode: "list" });
   if (view.mode === "detail") {
@@ -32,6 +35,26 @@ function RfqTab() {
   );
 }
 
+// Supplier's tab: invite list ↔ invite detail (with offer form).
+function SupplierTab() {
+  const [open, setOpen] = useState<Invite | null>(null);
+  // `key` forces the list to remount (and reload) after submitting an offer.
+  const [reloadKey, setReloadKey] = useState(0);
+  if (open) {
+    return (
+      <SupplierInviteDetailScreen
+        invite={open}
+        onBack={() => setOpen(null)}
+        onSubmitted={() => {
+          setOpen(null);
+          setReloadKey((k) => k + 1);
+        }}
+      />
+    );
+  }
+  return <SupplierInvitesScreen key={reloadKey} onOpen={setOpen} />;
+}
+
 function SignedInApp() {
   const { user } = useAuth();
   const isBuyer = user?.role === "BUYER";
@@ -45,7 +68,7 @@ function SignedInApp() {
   return (
     <View style={styles.flex}>
       <View style={styles.flex}>
-        {tab === "rfqs" && <RfqTab />}
+        {tab === "rfqs" && (isBuyer ? <RfqTab /> : <SupplierTab />)}
         {tab === "notifications" && <NotificationsScreen />}
         {tab === "credits" && <CreditsScreen />}
       </View>

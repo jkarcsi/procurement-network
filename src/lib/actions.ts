@@ -9,9 +9,9 @@ import { db } from "./db";
 import { createSession, destroySession, getSessionUser } from "./auth";
 import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } from "./ai";
 import { shortlistSuppliers } from "./matching";
-import { sendRfqInviteEmail, sendOfferReceivedEmail, sendWelcomeEmail } from "./email";
-import { notifyUser, notifyCompanyUsers } from "./notifications";
-import { acceptOffer } from "./offers";
+import { sendRfqInviteEmail, sendWelcomeEmail } from "./email";
+import { notifyCompanyUsers } from "./notifications";
+import { acceptOffer, submitOffer } from "./offers";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit, checkInviteLimit } from "./limits";
@@ -368,83 +368,18 @@ export async function submitOfferAction(formData: FormData) {
     where: { token },
     include: { rfq: true, supplier: { include: { company: true } } },
   });
-  if (!invite || invite.status === "OFFERED") redirect(`/r/${token}`);
-  if (invite.rfq.status === "DECIDED" || invite.rfq.status === "CLOSED") redirect(`/r/${token}`);
+  if (!invite) redirect(`/r/${token}`);
 
-  const priceNet = Number.parseInt(String(formData.get("priceNet") ?? ""), 10);
-  const priceUnit = String(formData.get("priceUnit") ?? "").trim() || "egyösszegű";
-  const startDate = String(formData.get("startDate") ?? "").trim() || null;
-  const validUntil = String(formData.get("validUntil") ?? "").trim() || null;
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-  const companyName =
-    invite.supplier?.company.name ?? (String(formData.get("companyName") ?? "").trim() || invite.companyName);
-  const contactEmail = String(formData.get("contactEmail") ?? "").trim() || invite.email;
-
-  if (!Number.isFinite(priceNet) || priceNet <= 0) {
-    redirect(`/r/${token}?error=${encodeURIComponent("Adj meg érvényes nettó árat (Ft).")}`);
-  }
-
-  await db.offer.create({
-    data: {
-      rfqId: invite.rfqId,
-      inviteId: invite.id,
-      companyName,
-      contactEmail,
-      priceNet,
-      priceUnit,
-      startDate,
-      validUntil,
-      notes,
-    },
+  const result = await submitOffer(invite, {
+    priceNet: Number.parseInt(String(formData.get("priceNet") ?? ""), 10),
+    priceUnit: String(formData.get("priceUnit") ?? ""),
+    startDate: String(formData.get("startDate") ?? ""),
+    validUntil: String(formData.get("validUntil") ?? ""),
+    notes: String(formData.get("notes") ?? ""),
+    companyName: String(formData.get("companyName") ?? ""),
+    contactEmail: String(formData.get("contactEmail") ?? ""),
   });
-  await db.rfqInvite.update({
-    where: { id: invite.id },
-    data: { status: "OFFERED", respondedAt: new Date() },
-  });
-
-  if (invite.supplierId && invite.supplier) {
-    const hours = (Date.now() - invite.sentAt.getTime()) / 3_600_000;
-    const n = invite.supplier.responseCount + 1;
-    const prevAvg = invite.supplier.avgResponseHours ?? hours;
-    await db.supplierProfile.update({
-      where: { id: invite.supplierId },
-      data: {
-        responseCount: { increment: 1 },
-        avgResponseHours: (prevAvg * (n - 1) + hours) / n,
-      },
-    });
-  }
-
-  await db.auditLog.create({
-    data: {
-      rfqId: invite.rfqId,
-      actor: contactEmail,
-      event: "OFFER_SUBMITTED",
-      meta: `${companyName}: ${priceNet} Ft (${priceUnit})`,
-    },
-  });
-
-  // Notify the buyer (RFQ creator, or any user of the buyer company)
-  const buyerUser = invite.rfq.createdById
-    ? await db.user.findUnique({ where: { id: invite.rfq.createdById } })
-    : await db.user.findFirst({ where: { companyId: invite.rfq.companyId } });
-  if (buyerUser) {
-    await sendOfferReceivedEmail({
-      to: buyerUser.email,
-      rfqId: invite.rfqId,
-      rfqTitle: invite.rfq.title,
-      supplierCompany: companyName,
-      priceText: `${priceNet.toLocaleString("hu-HU")} Ft (${priceUnit})`,
-    });
-    await notifyUser({
-      userId: buyerUser.id,
-      type: "OFFER_RECEIVED",
-      message: `${companyName} ajánlatot adott: ${invite.rfq.title}`,
-      linkUrl: `/rfq/${invite.rfqId}`,
-    });
-  }
-
-  await track("offer_submitted", contactEmail, { source: invite.source });
+  if (!result.ok) redirect(`/r/${token}?error=${encodeURIComponent(result.error)}`);
 
   revalidatePath(`/rfq/${invite.rfqId}`);
   redirect(`/r/${token}?ok=1`);
