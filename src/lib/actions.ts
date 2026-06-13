@@ -11,6 +11,7 @@ import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } 
 import { sendWelcomeEmail } from "./email";
 import { acceptOffer, submitOffer } from "./offers";
 import { sendRfq, joinOpenRfq } from "./rfqs";
+import { updateSupplierProfile } from "./suppliers";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit } from "./limits";
@@ -481,31 +482,15 @@ export async function updateSupplierProfileAction(formData: FormData) {
   const profile = user?.company?.supplierProfile;
   if (!user || user.role !== "SUPPLIER" || !profile) redirect("/login");
 
-  const categoryIds = formData.getAll("categories").map(String);
-  const regionIds = formData.getAll("regions").map(String);
-
-  await db.supplierProfile.update({
-    where: { id: profile.id },
-    data: {
-      phone: String(formData.get("phone") ?? "").trim() || null,
-      website: String(formData.get("website") ?? "").trim() || null,
-      description: String(formData.get("description") ?? "").trim() || null,
-      certifications: String(formData.get("certifications") ?? "").trim() || null,
-      nationwide: formData.get("nationwide") === "on",
-    },
+  await updateSupplierProfile(profile.id, {
+    phone: String(formData.get("phone") ?? ""),
+    website: String(formData.get("website") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    certifications: String(formData.get("certifications") ?? ""),
+    nationwide: formData.get("nationwide") === "on",
+    categoryIds: formData.getAll("categories").map(String),
+    regionIds: formData.getAll("regions").map(String),
   });
-  await db.supplierCategory.deleteMany({ where: { supplierId: profile.id } });
-  await db.supplierRegion.deleteMany({ where: { supplierId: profile.id } });
-  if (categoryIds.length > 0) {
-    await db.supplierCategory.createMany({
-      data: categoryIds.map((categoryId) => ({ supplierId: profile.id, categoryId })),
-    });
-  }
-  if (regionIds.length > 0) {
-    await db.supplierRegion.createMany({
-      data: regionIds.map((regionId) => ({ supplierId: profile.id, regionId })),
-    });
-  }
 
   revalidatePath("/supplier/profile");
   redirect("/supplier/profile?ok=1");

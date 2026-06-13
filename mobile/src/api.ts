@@ -145,6 +145,28 @@ export function sendRfq(token: string, rfqId: string, supplierIds: string[]) {
   );
 }
 
+export type SupplierProfile = {
+  description: string | null;
+  phone: string | null;
+  website: string | null;
+  certifications: string | null;
+  nationwide: boolean;
+  categoryIds: string[];
+  regionIds: string[];
+};
+
+export function getProfile(token: string) {
+  return request<{ data: SupplierProfile }>("/api/v1/profile", { method: "GET" }, token);
+}
+
+export function updateProfile(token: string, body: Partial<SupplierProfile>) {
+  return request<{ data: SupplierProfile }>(
+    "/api/v1/profile",
+    { method: "PUT", body: JSON.stringify(body) },
+    token,
+  );
+}
+
 export type Option = { id: string; name: string };
 
 export function getTaxonomy(token: string) {

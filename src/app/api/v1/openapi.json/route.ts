@@ -191,6 +191,30 @@ export async function GET() {
       "/api/v1/taxonomy": {
         get: { summary: "Categories and regions for client pickers", responses: { "200": { description: "Taxonomy" } } },
       },
+      "/api/v1/profile": {
+        get: { summary: "Supplier matching profile (session token)", responses: { "200": { description: "Profile" }, "403": { description: "Not a supplier" } } },
+        put: {
+          summary: "Update the supplier matching profile",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    description: { type: "string" },
+                    certifications: { type: "string" },
+                    nationwide: { type: "boolean" },
+                    categoryIds: { type: "array", items: { type: "string" } },
+                    regionIds: { type: "array", items: { type: "string" } },
+                  },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "Saved profile" }, "403": { description: "Not a supplier" } },
+        },
+      },
     },
     components: {
       securitySchemes: { bearerAuth: { type: "http", scheme: "bearer" } },
