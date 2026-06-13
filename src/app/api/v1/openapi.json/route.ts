@@ -7,9 +7,40 @@ export async function GET() {
       title: "Procura Public API",
       version: "1.0.0",
       description:
-        "RFQ access for buyer companies. Authenticate with 'Authorization: Bearer procura_...' API keys, managed on the /account page. Rate limit: 60 requests/minute per key.",
+        "RFQ access for buyer companies. Authenticate with 'Authorization: Bearer <token>': either a 'procura_...' API key (integrations, managed on /account, 60 req/min) or a session token from POST /api/v1/auth/login (mobile app, 120 req/min).",
     },
     paths: {
+      "/api/v1/auth/login": {
+        post: {
+          summary: "Mobile sign-in: email + password → bearer session token",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["email", "password"],
+                  properties: {
+                    email: { type: "string", format: "email" },
+                    password: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Token, user, and company" },
+            "401": { description: "Invalid credentials" },
+            "429": { description: "Too many attempts" },
+          },
+        },
+      },
+      "/api/v1/me": {
+        get: {
+          summary: "Current user, company, and unread notification count (session token only)",
+          responses: { "200": { description: "Profile" }, "403": { description: "API key has no user" } },
+        },
+      },
       "/api/v1/rfqs": {
         get: {
           summary: "List the company's RFQs",

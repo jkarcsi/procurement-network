@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { authenticateApiKey, apiError } from "@/lib/apiAuth";
+import { authenticateBearer, apiError } from "@/lib/apiAuth";
 import { buildSpec } from "@/lib/ai";
 import { checkRfqCreationLimit } from "@/lib/limits";
 import { RFQ_STATUS } from "@/lib/format";
@@ -25,7 +25,7 @@ function serializeRfq(rfq: {
 }
 
 export async function GET(req: Request) {
-  const auth = await authenticateApiKey(req);
+  const auth = await authenticateBearer(req);
   if (!auth.ok) return apiError(auth.status, auth.message);
   const company = auth.company;
 
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await authenticateApiKey(req);
+  const auth = await authenticateBearer(req);
   if (!auth.ok) return apiError(auth.status, auth.message);
   const company = auth.company;
   if (company.type !== "BUYER") return apiError(403, "Only buyer companies can create RFQs");
@@ -77,7 +77,8 @@ export async function POST(req: Request) {
       deadline,
       spec: JSON.stringify(spec),
       status: "READY",
-      auditLogs: { create: { actor: `api:${company.name}`, event: "RFQ_CREATED", meta: intakeText } },
+      createdById: auth.userId,
+      auditLogs: { create: { actor: auth.actor, event: "RFQ_CREATED", meta: intakeText } },
     },
   });
   return Response.json({ data: serializeRfq(rfq) }, { status: 201 });

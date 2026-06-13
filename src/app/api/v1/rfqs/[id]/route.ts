@@ -1,8 +1,8 @@
 import { db } from "@/lib/db";
-import { authenticateApiKey, apiError } from "@/lib/apiAuth";
+import { authenticateBearer, apiError } from "@/lib/apiAuth";
 
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const auth = await authenticateApiKey(req);
+  const auth = await authenticateBearer(req);
   if (!auth.ok) return apiError(auth.status, auth.message);
   const company = auth.company;
 
