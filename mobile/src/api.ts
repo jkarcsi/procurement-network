@@ -110,3 +110,11 @@ export function purchaseCredits(token: string, packageId: string) {
     token,
   );
 }
+
+export function acceptOffer(token: string, offerId: string) {
+  return request<{ ok: boolean; rfqId: string }>(
+    `/api/v1/offers/${offerId}/accept`,
+    { method: "POST" },
+    token,
+  );
+}

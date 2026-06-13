@@ -9,8 +9,9 @@ import { db } from "./db";
 import { createSession, destroySession, getSessionUser } from "./auth";
 import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } from "./ai";
 import { shortlistSuppliers } from "./matching";
-import { sendRfqInviteEmail, sendOfferReceivedEmail, sendOfferAcceptedEmail, sendWelcomeEmail } from "./email";
+import { sendRfqInviteEmail, sendOfferReceivedEmail, sendWelcomeEmail } from "./email";
 import { notifyUser, notifyCompanyUsers } from "./notifications";
+import { acceptOffer } from "./offers";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit, checkInviteLimit } from "./limits";
@@ -472,53 +473,15 @@ export async function acceptOfferAction(formData: FormData) {
   if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
 
   const offerId = String(formData.get("offerId") ?? "");
-  const offer = await db.offer.findUnique({
-    where: { id: offerId },
-    include: { rfq: { include: { company: true } }, invite: true },
+  const result = await acceptOffer(offerId, {
+    id: user.id,
+    email: user.email,
+    companyId: user.companyId,
   });
-  if (!offer || offer.rfq.companyId !== user.companyId) redirect("/dashboard");
+  if (!result.ok) redirect("/dashboard");
 
-  await db.offer.update({ where: { id: offer.id }, data: { status: "ACCEPTED" } });
-  await db.offer.updateMany({
-    where: { rfqId: offer.rfqId, id: { not: offer.id } },
-    data: { status: "REJECTED" },
-  });
-  await db.rfq.update({ where: { id: offer.rfqId }, data: { status: "DECIDED" } });
-  await db.auditLog.create({
-    data: {
-      rfqId: offer.rfqId,
-      actor: user.email,
-      event: "OFFER_ACCEPTED",
-      meta: `${offer.companyName}: ${offer.priceNet} Ft (${offer.priceUnit})`,
-    },
-  });
-
-  await sendOfferAcceptedEmail({
-    to: offer.contactEmail,
-    rfqId: offer.rfqId,
-    rfqTitle: offer.rfq.title,
-    supplierCompany: offer.companyName,
-    buyerCompany: offer.rfq.company.name,
-    token: offer.invite?.token ?? null,
-  });
-  if (offer.invite?.supplierId) {
-    const supplierProfile = await db.supplierProfile.findUnique({
-      where: { id: offer.invite.supplierId },
-    });
-    if (supplierProfile) {
-      await notifyCompanyUsers({
-        companyId: supplierProfile.companyId,
-        type: "OFFER_ACCEPTED",
-        message: `Elfogadták az ajánlatodat: ${offer.rfq.title} (${offer.rfq.company.name})`,
-        linkUrl: offer.invite ? `/r/${offer.invite.token}` : undefined,
-      });
-    }
-  }
-
-  await track("offer_accepted", user.id, { priceNet: offer.priceNet });
-
-  revalidatePath(`/rfq/${offer.rfqId}`);
-  redirect(`/rfq/${offer.rfqId}`);
+  revalidatePath(`/rfq/${result.rfqId}`);
+  redirect(`/rfq/${result.rfqId}`);
 }
 
 export async function compareOffersAction(formData: FormData) {
