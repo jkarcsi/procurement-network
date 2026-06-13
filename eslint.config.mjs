@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // The mobile app is a separate Expo package with its own toolchain.
     "mobile/**",
+    // The lead-discovery service is a separate project (own toolchain).
+    "lead-discovery/**",
   ]),
 ]);
 
