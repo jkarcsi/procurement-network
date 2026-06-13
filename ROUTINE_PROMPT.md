@@ -26,11 +26,12 @@ product measurably closer to that goal and leave the repository green
 - [x] Biometric sign-in: **mobile app only** (Expo `expo-local-authentication`
       Face ID / Touch ID / fingerprint, gating a stored session token). Desktop
       web is email+password by design — product decision, web WebAuthn removed.
-- [~] Mobile app: installable PWA baseline (done) + Expo React Native app in
-      `mobile/` covering the full loop (biometric lock; buyer: RFQ list/detail,
-      create, accept offers, credits/purchase; supplier: invites, submit
-      offers; both: notifications). Remaining: push notifications + store/EAS
-      build.
+- [x] Mobile app: installable PWA baseline + Expo React Native app in `mobile/`
+      covering the full loop (biometric lock; buyer: RFQ list/detail, create,
+      shortlist+send, accept offers, credits/purchase; supplier: invites +
+      submit offers, open opportunities + self-apply, profile editing; both:
+      notifications, push w/ tap-to-navigate, account). EAS build config in
+      place. Remaining for launch: actual store submission (human/EAS).
 - [x] Search, filtering, and pagination on every list view
 - [x] In-app + email notifications for the core loop events
 - [x] Admin panel (users, RFQs, suppliers, credit ledger, moderation)
@@ -171,6 +172,23 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-13 — run 18
+
+- **Shipped (P11 — finished the mobile app):** (1) supplier profile editing —
+  `src/lib/suppliers.ts` (taxonomy-validated get/update), `GET/PUT
+  /api/v1/profile`, mobile **Account tab** (both roles: user/company/plan +
+  sign out; suppliers: editable description/certifications/nationwide +
+  multi-select category/region chips); (2) push **tap-to-navigate** — a
+  notification-response listener routes buyer `/rfq/<id>` links to the RFQ
+  detail, others to the notifications tab (handles cold start too); (3)
+  **EAS build config** (`mobile/eas.json` + README build steps). Marked the
+  mobile checklist item done.
+- **Verified:** web build, lint, tests (9/9), smoke (9/9); live profile
+  get/update with unknown-id filtering and buyer-403. Expo app still needs
+  Expo tooling to run; store submission is the only remaining (human) step.
+- **Next step:** product polish / counsel review of terms+privacy (human),
+  or pick a new backlog item (reviews P15, file attachments P14).
 
 ### 2026-06-13 — run 17
 

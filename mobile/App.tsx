@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, SafeAreaView } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import * as Notifications from "expo-notifications";
 import { AuthProvider, useAuth } from "./src/AuthContext";
 import LoginScreen from "./src/screens/LoginScreen";
 import LockScreen from "./src/screens/LockScreen";
@@ -18,9 +19,26 @@ import type { Invite } from "./src/api";
 type TabKey = "rfqs" | "opportunities" | "notifications" | "credits" | "account";
 type RfqView = { mode: "list" } | { mode: "detail"; id: string } | { mode: "new" };
 
+// Maps a notification's linkUrl (e.g. "/rfq/abc") to an in-app destination.
+function linkToRfqId(link: unknown): string | null {
+  return typeof link === "string" && link.startsWith("/rfq/") ? link.slice("/rfq/".length) : null;
+}
+
 // Buyer's RFQ tab: list ↔ detail ↔ new stack.
-function RfqTab() {
+function RfqTab({
+  pendingRfqId,
+  onConsumePending,
+}: {
+  pendingRfqId: string | null;
+  onConsumePending: () => void;
+}) {
   const [view, setView] = useState<RfqView>({ mode: "list" });
+  useEffect(() => {
+    if (pendingRfqId) {
+      setView({ mode: "detail", id: pendingRfqId });
+      onConsumePending();
+    }
+  }, [pendingRfqId, onConsumePending]);
   if (view.mode === "detail") {
     return <RfqDetailScreen id={view.id} onBack={() => setView({ mode: "list" })} />;
   }
@@ -68,11 +86,38 @@ function SignedInApp() {
     { key: "account", label: "Fiók", icon: "👤" },
   ];
   const [tab, setTab] = useState<TabKey>("rfqs");
+  const [pendingRfqId, setPendingRfqId] = useState<string | null>(null);
+
+  // Tap on a push → route to the relevant screen. Buyer RFQ links open the
+  // detail; everything else lands on the notifications list.
+  useEffect(() => {
+    function route(link: unknown) {
+      const rfqId = linkToRfqId(link);
+      if (rfqId && isBuyer) {
+        setTab("rfqs");
+        setPendingRfqId(rfqId);
+      } else {
+        setTab("notifications");
+      }
+    }
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) route(response.notification.request.content.data?.linkUrl);
+    });
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      route(response.notification.request.content.data?.linkUrl);
+    });
+    return () => sub.remove();
+  }, [isBuyer]);
 
   return (
     <View style={styles.flex}>
       <View style={styles.flex}>
-        {tab === "rfqs" && (isBuyer ? <RfqTab /> : <SupplierTab />)}
+        {tab === "rfqs" &&
+          (isBuyer ? (
+            <RfqTab pendingRfqId={pendingRfqId} onConsumePending={() => setPendingRfqId(null)} />
+          ) : (
+            <SupplierTab />
+          ))}
         {tab === "opportunities" && <SupplierOpportunitiesScreen />}
         {tab === "notifications" && <NotificationsScreen />}
         {tab === "credits" && <CreditsScreen />}

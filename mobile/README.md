@@ -31,6 +31,21 @@ Set the API base URL in `app.json` → `expo.extra.apiBaseUrl`
 (default `http://localhost:3000`). On a physical device use your machine's LAN
 IP or a deployed URL, not `localhost`.
 
+## Store build (EAS)
+
+```bash
+npm install -g eas-cli
+eas login
+eas init                 # creates the EAS project + sets expo.extra.eas.projectId
+eas build --profile preview --platform android    # internal test build
+eas build --profile production --platform all      # store builds
+eas submit --profile production --platform ios      # upload to the stores
+```
+
+Profiles live in `eas.json`. Push tokens (`getExpoPushTokenAsync`) require the
+`projectId` that `eas init` writes, so push only works on a dev/EAS build, not
+in plain Expo Go.
+
 ## Structure
 
 - `App.tsx` — root: auth-status router + role-aware bottom tabs
@@ -38,8 +53,10 @@ IP or a deployed URL, not `localhost`.
 - `src/session.ts` — secure token storage + `expo-local-authentication` wrapper
 - `src/push.ts` — Expo push token registration + foreground handler
 - `src/api.ts` — typed `/api/v1` client
-- `src/screens/` — login, biometric lock, notifications; buyer: RFQ
-  list/detail/new + credits; supplier: invites list/detail (offer form)
+- `src/screens/` — login, biometric lock, notifications, account/profile;
+  buyer: RFQ list/detail (shortlist + send, accept offers) / new + credits;
+  supplier: invites (offer form), open opportunities
 
-Covers the full loop. Remaining: tap-to-navigate from a push, and an
-EAS/store build.
+Covers the full RFQ loop for both roles. Push taps route to the relevant
+screen (buyer RFQ links open the detail). Configure `eas.json` and run
+`eas build` for store distribution.
