@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import * as api from "./api";
 import {
   saveToken,
@@ -7,6 +7,7 @@ import {
   biometricsAvailable,
   authenticateBiometric,
 } from "./session";
+import { registerForPushNotifications, devicePlatform } from "./push";
 
 type Status = "loading" | "locked" | "signedOut" | "signedIn";
 
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<api.ApiUser | null>(null);
   const [company, setCompany] = useState<api.ApiCompany | null>(null);
+  const expoTokenRef = useRef<string | null>(null);
 
   const loadProfile = useCallback(async (t: string) => {
     try {
@@ -56,6 +58,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [loadProfile]);
 
+  // Register this device for push once signed in (best effort).
+  useEffect(() => {
+    if (status !== "signedIn" || !token) return;
+    let cancelled = false;
+    (async () => {
+      const expoToken = await registerForPushNotifications();
+      if (cancelled || !expoToken) return;
+      expoTokenRef.current = expoToken;
+      try {
+        await api.registerPushToken(token, expoToken, devicePlatform);
+      } catch {
+        // ignore — push is best effort
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status, token]);
+
   const unlock = useCallback(async () => {
     const ok = await authenticateBiometric();
     if (!ok || !token) return;
@@ -73,12 +94,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (token && expoTokenRef.current) {
+      try {
+        await api.unregisterPushToken(token, expoTokenRef.current);
+      } catch {
+        // ignore — stale token will simply stop receiving pushes
+      }
+    }
+    expoTokenRef.current = null;
     await clearToken();
     setToken(null);
     setUser(null);
     setCompany(null);
     setStatus("signedOut");
-  }, []);
+  }, [token]);
 
   return (
     <AuthContext.Provider value={{ status, token, user, company, signIn, signOut, unlock }}>

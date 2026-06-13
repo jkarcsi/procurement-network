@@ -172,6 +172,25 @@ file** for where the previous run left off.
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
 
+### 2026-06-13 — run 15
+
+- **Docs:** README gained a Mobile app section (how to start the Expo app,
+  point it at the API, what it covers) and dropped a stale web-WebAuthn env
+  note.
+- **Shipped (P11 — push notifications):** `PushToken` model; `src/lib/push.ts`
+  sends via Expo's public push endpoint (no SDK/key, 3s timeout, swallowed
+  errors); `notifyUser`/`notifyCompanyUsers` now mirror every in-app
+  notification to push. `POST`/`DELETE /api/v1/push` register/unregister a
+  device token. Mobile: `expo-notifications` integration (`src/push.ts`),
+  registers on sign-in and unregisters on sign-out via the AuthContext.
+- **Verified:** web build, lint, tests (9/9), smoke (9/9); live push
+  register/unregister (store+link, 400 missing token, 401 no auth); notify
+  with a token present completes in ~100ms and still creates the in-app row.
+  The Expo app itself needs Expo tooling (and push needs a dev/EAS build).
+- **Next step:** mobile push tap-to-navigate + EAS/store build, or the final
+  UI-polish + audit-completeness pass; counsel review of terms/privacy stays
+  human.
+
 ### 2026-06-13 — run 14
 
 - **Shipped (P11 — full mobile loop):** built out the remaining mobile

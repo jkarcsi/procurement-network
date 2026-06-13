@@ -169,3 +169,19 @@ export function submitInviteOffer(
     token,
   );
 }
+
+export function registerPushToken(sessionToken: string, expoToken: string, platform: string) {
+  return request<{ ok: boolean }>(
+    "/api/v1/push",
+    { method: "POST", body: JSON.stringify({ token: expoToken, platform }) },
+    sessionToken,
+  );
+}
+
+export function unregisterPushToken(sessionToken: string, expoToken: string) {
+  return request<{ ok: boolean }>(
+    "/api/v1/push",
+    { method: "DELETE", body: JSON.stringify({ token: expoToken }) },
+    sessionToken,
+  );
+}

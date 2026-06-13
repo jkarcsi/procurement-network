@@ -22,6 +22,6 @@
     "extra": {
       "apiBaseUrl": "http://localhost:3000"
     },
-    "plugins": ["expo-local-authentication", "expo-secure-store"]
+    "plugins": ["expo-local-authentication", "expo-secure-store", "expo-notifications"]
   }
 }

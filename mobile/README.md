@@ -14,6 +14,10 @@ the desktop web uses email + password.
    never unlocks without the device owner present.
 4. Authenticated requests send `Authorization: Bearer <token>`; the same
    endpoints back the integration API keys (see `/api/v1/openapi.json`).
+5. Once signed in, the device registers an **Expo push token**
+   (`expo-notifications`) with `POST /api/v1/push`; the server then mirrors
+   every in-app notification (offer received/accepted, new invite) to push.
+   Push tokens need a real dev/EAS build — Expo Go has limited support.
 
 ## Run
 
@@ -29,11 +33,13 @@ IP or a deployed URL, not `localhost`.
 
 ## Structure
 
-- `App.tsx` — root, auth-status router (loading / signed-out / locked / signed-in)
-- `src/AuthContext.tsx` — session state, biometric gate, token lifecycle
+- `App.tsx` — root: auth-status router + role-aware bottom tabs
+- `src/AuthContext.tsx` — session state, biometric gate, token + push lifecycle
 - `src/session.ts` — secure token storage + `expo-local-authentication` wrapper
+- `src/push.ts` — Expo push token registration + foreground handler
 - `src/api.ts` — typed `/api/v1` client
-- `src/screens/` — login, biometric lock, RFQ list, RFQ detail
+- `src/screens/` — login, biometric lock, notifications; buyer: RFQ
+  list/detail/new + credits; supplier: invites list/detail (offer form)
 
-This is the foundation; offer submission, notifications, and credit purchase
-screens build on the same API client.
+Covers the full loop. Remaining: tap-to-navigate from a push, and an
+EAS/store build.
