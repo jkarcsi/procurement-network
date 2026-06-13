@@ -88,6 +88,68 @@ export async function GET() {
           responses: { "200": { description: "RFQ detail" }, "404": { description: "Not found" } },
         },
       },
+      "/api/v1/offers/{id}/accept": {
+        post: {
+          summary: "Buyer accepts an offer (decides the RFQ)",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: { "200": { description: "Accepted" }, "400": { description: "Not acceptable" }, "403": { description: "Not a buyer" } },
+        },
+      },
+      "/api/v1/invites": {
+        get: {
+          summary: "Supplier's received RFQ invites (session token only)",
+          responses: { "200": { description: "Invite list" }, "403": { description: "Not a supplier" } },
+        },
+      },
+      "/api/v1/invites/{id}/offer": {
+        post: {
+          summary: "Supplier submits an offer to one of their invites",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["priceNet"],
+                  properties: {
+                    priceNet: { type: "integer", minimum: 1 },
+                    priceUnit: { type: "string" },
+                    startDate: { type: "string" },
+                    validUntil: { type: "string" },
+                    notes: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: { "200": { description: "Submitted" }, "400": { description: "Invalid / already offered" } },
+        },
+      },
+      "/api/v1/notifications": {
+        get: { summary: "List notifications + unread count (session token)", responses: { "200": { description: "Notifications" } } },
+        post: { summary: "Mark all notifications read", responses: { "200": { description: "OK" } } },
+      },
+      "/api/v1/credits": {
+        get: { summary: "Credit balance, packages, and ledger", responses: { "200": { description: "Credits" } } },
+      },
+      "/api/v1/credits/purchase": {
+        post: {
+          summary: "Buy a credit package (Stripe Checkout URL or demo grant)",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { type: "object", required: ["packageId"], properties: { packageId: { type: "string" } } },
+              },
+            },
+          },
+          responses: { "200": { description: "checkoutUrl or granted balance" }, "400": { description: "Unknown package" } },
+        },
+      },
+      "/api/v1/taxonomy": {
+        get: { summary: "Categories and regions for client pickers", responses: { "200": { description: "Taxonomy" } } },
+      },
     },
     components: {
       securitySchemes: { bearerAuth: { type: "http", scheme: "bearer" } },

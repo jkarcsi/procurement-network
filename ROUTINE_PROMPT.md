@@ -26,9 +26,11 @@ product measurably closer to that goal and leave the repository green
 - [x] Biometric sign-in: **mobile app only** (Expo `expo-local-authentication`
       Face ID / Touch ID / fingerprint, gating a stored session token). Desktop
       web is email+password by design — product decision, web WebAuthn removed.
-- [~] Mobile app: installable PWA baseline (done) + Expo React Native app
-      skeleton in `mobile/` on the public API (login → biometric lock → RFQ
-      list/detail). Remaining: offer/notification/credit screens, store build.
+- [~] Mobile app: installable PWA baseline (done) + Expo React Native app in
+      `mobile/` covering the full loop (biometric lock; buyer: RFQ list/detail,
+      create, accept offers, credits/purchase; supplier: invites, submit
+      offers; both: notifications). Remaining: push notifications + store/EAS
+      build.
 - [x] Search, filtering, and pagination on every list view
 - [x] In-app + email notifications for the core loop events
 - [x] Admin panel (users, RFQs, suppliers, credit ledger, moderation)
@@ -149,7 +151,7 @@ file** for where the previous run left off.
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
-| P11 | Mobile app (Expo) | Skeleton DONE (login → biometric lock → RFQ list/detail on the v1 API). Remaining: offer submission, notifications, credit purchase screens, push notifications, store build/EAS; Revolut-grade polish |
+| P11 | Mobile app (Expo) | Core loop DONE (biometric lock; buyer RFQ list/detail/create/accept + credits; supplier invites + submit offer; notifications). Remaining: push notifications, EAS/store build, Revolut-grade polish |
 | P14 | File attachments | `Attachment` model, local `/uploads` in dev, 10 MB cap, PDF/DOCX/XLSX/PNG/JPG |
 | P15 | Supplier directory + reviews | `/suppliers` browse/filter, invite-to-RFQ; buyer rates supplier after DECIDED, rating feeds matching (≤5 pts) |
 | P16 | RFQ Q&A thread | Registered suppliers ask clarifying questions on an invite; buyer answers on the RFQ page; thread visible to all invitees; recurring questions feed back into the category's clarify-question template (taxonomy + Category table) |
@@ -169,6 +171,26 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-13 — run 14
+
+- **Shipped (P11 — full mobile loop):** built out the remaining mobile
+  screens and their API. New `/api/v1` endpoints: `notifications` (GET+POST
+  mark-read), `credits` + `credits/purchase` (Stripe URL or demo grant),
+  `offers/[id]/accept`, `taxonomy`, `invites` (GET), `invites/[id]/offer`.
+  Extracted `acceptOffer` and `submitOffer` into `src/lib/offers.ts` as the
+  single source of truth and refactored the web actions to use them (added a
+  guard against accepting an already-decided RFQ). Mobile: role-aware bottom
+  tabs; buyer = RFQ list/detail/create + accept + Kreditek; supplier =
+  invites list/detail + submit offer; both = notifications. OpenAPI updated.
+- **Verified:** web build, lint, tests (9/9), smoke (9/9) green after every
+  slice; each endpoint live-tested over HTTP (auth, success, and the 400/403
+  guard paths — double-accept, double-submit, role checks).
+- **Note:** the Expo app needs Expo tooling to run (not buildable in this
+  sandbox); verify on device with `cd mobile && npm start`.
+- **Next step:** mobile push notifications (Expo push tokens) + EAS/store
+  build, or the final UI-polish + audit-completeness pass; counsel review of
+  terms/privacy stays human.
 
 ### 2026-06-13 — run 13
 
