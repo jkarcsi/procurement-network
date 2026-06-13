@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Procura",
+    "slug": "procura",
+    "scheme": "procura",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#4f46e5"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "hu.procura.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "A Procura arcfelismeréssel vagy ujjlenyomattal léptet be a fiókodba."
+      }
+    },
+    "android": {
+      "package": "hu.procura.app"
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:3000"
+    },
+    "plugins": ["expo-local-authentication", "expo-secure-store"]
+  }
+}

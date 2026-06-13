@@ -23,10 +23,12 @@ product measurably closer to that goal and leave the repository green
       idempotent; demo grant without keys)
 - [x] Stripe Pro subscription + plan limits enforced server-side
       (`src/lib/limits.ts` in `createRfqAction`/`sendRfqAction`)
-- [x] Biometric sign-in: passkeys/WebAuthn on web+PWA (Face ID / Touch ID /
-      fingerprint via platform authenticators)
-- [ ] Mobile app: installable PWA baseline (done) → dedicated Expo React
-      Native app on the public API, with `expo-local-authentication` biometrics
+- [x] Biometric sign-in: **mobile app only** (Expo `expo-local-authentication`
+      Face ID / Touch ID / fingerprint, gating a stored session token). Desktop
+      web is email+password by design — product decision, web WebAuthn removed.
+- [~] Mobile app: installable PWA baseline (done) + Expo React Native app
+      skeleton in `mobile/` on the public API (login → biometric lock → RFQ
+      list/detail). Remaining: offer/notification/credit screens, store build.
 - [x] Search, filtering, and pagination on every list view
 - [x] In-app + email notifications for the core loop events
 - [x] Admin panel (users, RFQs, suppliers, credit ledger, moderation)
@@ -147,7 +149,7 @@ file** for where the previous run left off.
 | # | Item | Scope hint |
 |---|------|-----------|
 | P3 | Stripe Pro subscription + limits | Credits checkout DONE. Remaining: `Company.plan` + Stripe subscription fields, subscribe from `/pricing`, `customer.subscription.*` webhook events, `src/lib/limits.ts` enforcing FREE limits (3 active RFQs, 5 invites/RFQ) in `createRfqAction`/`sendRfqAction`; verify checkout end-to-end with `stripe listen` and test keys |
-| P11 | Mobile app (Expo) | React Native app in `mobile/` on the public API: sign-in (passkey/biometric via `expo-local-authentication`), RFQ list/detail, offer review, push notifications; Revolut-grade navigation and polish |
+| P11 | Mobile app (Expo) | Skeleton DONE (login → biometric lock → RFQ list/detail on the v1 API). Remaining: offer submission, notifications, credit purchase screens, push notifications, store build/EAS; Revolut-grade polish |
 | P14 | File attachments | `Attachment` model, local `/uploads` in dev, 10 MB cap, PDF/DOCX/XLSX/PNG/JPG |
 | P15 | Supplier directory + reviews | `/suppliers` browse/filter, invite-to-RFQ; buyer rates supplier after DECIDED, rating feeds matching (≤5 pts) |
 | P16 | RFQ Q&A thread | Registered suppliers ask clarifying questions on an invite; buyer answers on the RFQ page; thread visible to all invitees; recurring questions feed back into the category's clarify-question template (taxonomy + Category table) |
@@ -167,6 +169,30 @@ file** for where the previous run left off.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-13 — run 13
+
+- **Product change (user):** biometric sign-in is mobile-only. Removed the
+  web WebAuthn passkey feature entirely (login button, account management,
+  `/api/passkeys/*`, `src/lib/passkeys.ts`, `Passkey` model,
+  `@simplewebauthn/*` deps). Desktop is email+password; `/account` points
+  to the mobile app for biometrics.
+- **Shipped (P11 foundation):** Mobile token auth API — `auth.ts` exposes
+  `signSessionToken`/`userFromToken`; `POST /api/v1/auth/login`
+  (email+password → token, rate-limited), `GET /api/v1/me`;
+  `apiAuth.authenticateBearer` accepts API keys (integrations, 60/min) or
+  session tokens (mobile, 120/min); RFQ endpoints now serve both, mobile
+  creates attributed via `createdById`. OpenAPI updated.
+- **Shipped (P11 app):** Expo React Native skeleton in `mobile/` —
+  `expo-local-authentication` biometric gate over a `expo-secure-store`
+  token, login / lock / RFQ list / RFQ detail screens, typed `/api/v1`
+  client. Excluded from web tsconfig/eslint/docker so the web stays green.
+- **Verified:** build, lint, tests (9/9), smoke (9/9); live mobile API:
+  login 401/200, `/me` 200+401, RFQ list/create via session token
+  (createdById set). Mobile app itself needs Expo tooling to run — not
+  buildable in this sandbox; verify with `cd mobile && npm start`.
+- **Next step:** mobile offer/notification/credit screens + push, or the
+  final UI-polish + audit-completeness pass; counsel review stays human.
 
 ### 2026-06-12 — run 12
 
