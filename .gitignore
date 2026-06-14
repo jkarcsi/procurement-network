@@ -24,6 +24,12 @@
 .DS_Store
 *.pem
 
+# IDE
+/.idea/
+
+# mobile UI preview harness (local dev tool; not part of the product build)
+/webpreview/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
