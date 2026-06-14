@@ -1,5 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useAuth } from "../AuthContext";
 
 export default function LoginScreen() {
@@ -22,7 +31,10 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <Text style={styles.brand}>Procura</Text>
       <Text style={styles.subtitle}>B2B beszerzési hálózat</Text>
 
@@ -49,7 +61,7 @@ export default function LoginScreen() {
       <Text style={styles.hint}>
         A következő belépéskor ujjlenyomattal vagy arcfelismeréssel jelentkezhetsz be.
       </Text>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

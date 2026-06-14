@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { useAuth } from "../AuthContext";
 import * as api from "../api";
+import { rfqStatusBadge } from "../status";
+import StatusBadge from "../components/StatusBadge";
 
 type Offer = {
   id: string;
@@ -15,13 +17,6 @@ type RfqDetail = api.Rfq & {
   spec: { summary?: string } | null;
   offers: Offer[];
   invites: unknown[];
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  READY: "Kiküldésre kész",
-  SENT: "Kiküldve",
-  DECIDED: "Eldöntve",
-  CLOSED: "Lezárva",
 };
 
 export default function RfqDetailScreen({ id, onBack }: { id: string; onBack: () => void }) {
@@ -120,7 +115,9 @@ export default function RfqDetailScreen({ id, onBack }: { id: string; onBack: ()
       {rfq && (
         <ScrollView>
           <Text style={styles.title}>{rfq.title}</Text>
-          <Text style={styles.statusLine}>{STATUS_LABEL[rfq.status] ?? rfq.status}</Text>
+          <View style={styles.statusLine}>
+            <StatusBadge {...rfqStatusBadge(rfq.status)} />
+          </View>
           {rfq.spec?.summary && <Text style={styles.summary}>{rfq.spec.summary}</Text>}
 
           {isReady ? (
@@ -205,8 +202,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 16 },
   back: { color: "#4f46e5", fontWeight: "600", marginBottom: 12 },
   title: { fontSize: 22, fontWeight: "bold", color: "#0f172a" },
-  statusLine: { fontSize: 13, color: "#4f46e5", marginTop: 4 },
-  summary: { fontSize: 14, color: "#475569", marginTop: 8 },
+  statusLine: { marginTop: 8 },
+  summary: { fontSize: 14, color: "#475569", marginTop: 12 },
   sectionTitle: { fontSize: 16, fontWeight: "600", color: "#0f172a", marginTop: 24, marginBottom: 4 },
   hint: { fontSize: 13, color: "#64748b", marginBottom: 8 },
   supplier: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#f8fafc", borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: "#e2e8f0" },
