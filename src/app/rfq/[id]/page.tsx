@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { shortlistSuppliers } from "@/lib/matching";
-import { sendRfqAction, acceptOfferAction, compareOffersAction } from "@/lib/actions";
+import { sendRfqAction, acceptOfferAction, compareOffersAction, toggleRfqPublicAction } from "@/lib/actions";
 import { formatDate, formatDateTime, formatHuf, RFQ_STATUS, INVITE_STATUS, OFFER_STATUS } from "@/lib/format";
 import type { RfqSpec } from "@/lib/ai";
 
@@ -59,6 +59,33 @@ export default async function RfqDetailPage({
           {status.label}
         </span>
       </div>
+
+      {/* Public tender board toggle */}
+      {(rfq.status === "READY" || rfq.status === "SENT") && (
+        <form
+          action={toggleRfqPublicAction}
+          className="bg-white border border-slate-200 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3"
+        >
+          <input type="hidden" name="rfqId" value={rfq.id} />
+          <div className="text-sm">
+            <span className="font-medium text-slate-800">Nyilvános tendertábla</span>
+            <span className="ml-2 text-slate-500">
+              {rfq.isPublic
+                ? "Az ajánlatkérés nyilvánosan látható, és új beszállítók is jelentkezhetnek rá."
+                : "Tedd közzé, hogy a hálózaton kívüli beszállítók is megtalálják és jelentkezhessenek."}
+            </span>
+          </div>
+          <button
+            className={`text-sm px-4 py-1.5 rounded-lg ${
+              rfq.isPublic
+                ? "border border-slate-300 text-slate-700 hover:bg-slate-50"
+                : "bg-indigo-600 text-white hover:bg-indigo-700"
+            }`}
+          >
+            {rfq.isPublic ? "Visszavonás" : "Közzététel"}
+          </button>
+        </form>
+      )}
 
       {/* Structured specification */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">

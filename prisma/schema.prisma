@@ -156,6 +156,7 @@ model Rfq {
   regionId     String?
   region       Region?       @relation(fields: [regionId], references: [id])
   status       String        @default("READY") // READY | SENT | DECIDED | CLOSED
+  isPublic     Boolean       @default(false) // listed on the public tender board
   deadline     DateTime?
   spec         String? // JSON: structured specification
   aiComparison String?

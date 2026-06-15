@@ -186,6 +186,20 @@ export async function sendRfqAction(formData: FormData) {
   redirect(`/rfq/${result.rfqId}`);
 }
 
+// Buyer toggles whether the RFQ is listed on the public tender board.
+export async function toggleRfqPublicAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
+
+  const rfqId = String(formData.get("rfqId") ?? "");
+  const rfq = await db.rfq.findUnique({ where: { id: rfqId } });
+  if (!rfq || rfq.companyId !== user.companyId) redirect("/dashboard");
+
+  await db.rfq.update({ where: { id: rfq.id }, data: { isPublic: !rfq.isPublic } });
+  revalidatePath(`/rfq/${rfq.id}`);
+  redirect(`/rfq/${rfq.id}`);
+}
+
 // ---------- Supplier application to an open opportunity ----------
 
 export async function joinOpenRfqAction(formData: FormData) {

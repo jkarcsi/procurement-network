@@ -141,6 +141,9 @@ export default async function RootLayout({
           <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-slate-400 flex flex-col sm:flex-row gap-2 justify-between">
             <span>© Procura – B2B beszerzési hálózat</span>
             <span className="flex gap-4">
+              <Link href="/tenders" className="hover:text-indigo-700">
+                Nyílt tenderek
+              </Link>
               <Link href="/pricing" className="hover:text-indigo-700">
                 Árak
               </Link>
