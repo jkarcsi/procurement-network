@@ -173,6 +173,41 @@ file** for where the previous run left off.
 | Supplier (CleanPro Facility Kft.) | `demo@beszallito.hu` | `demo1234` |
 | Admin | `admin@procura.hu` | `admin1234` |
 
+## Growth & revenue implementation tracks
+
+Backlog items (`BACKLOG.md`) sequenced for execution. **Do the Growth track
+top-to-bottom first, then the Revenue track.** Update the Status column as each
+ships so work is continuable. Scope per item lives in `BACKLOG.md` under its
+code.
+
+### Growth track (do first)
+
+| Order | Code | Item | Status |
+|---|---|---|---|
+| 1 | G1 | Lead-discovery & cold-outreach engine (separate project, legal-gated) | IN PROGRESS — scaffold in `lead-discovery/` (run 19); blocked from its own repo this session |
+| 2 | G2 | "Claim your business profile" (cold invitee → register → merge + prefill) | TODO |
+| 3 | G3 | Referral program (invite → both get credits on activation) | TODO |
+| 4 | O2 | Supply-gap alerts (admin: demand vs. few suppliers per category×region) | TODO |
+| 5 | G4 | Public / open-tender marketplace (opt-in RFQs visible to all matching suppliers) | TODO |
+| 6 | G7 | Social proof on landing (real outcome stats) | TODO |
+| 7 | G5 | Programmatic SEO pages (`{kategória} {megye}`) | TODO |
+| 8 | G6 | Embeddable "ajánlatot kérek" widget | TODO |
+| 9 | G8 | Partnerships / verified supplier import (chambers) | TODO (mostly business dev) |
+
+### Revenue track (after Growth)
+
+| Order | Code | Item | Status |
+|---|---|---|---|
+| 1 | T1 | Reviews & ratings (feeds matching) | TODO |
+| 2 | $2 | Credit auto-recharge | TODO |
+| 3 | B4 | RFQ Q&A thread (answers feed category templates) | TODO |
+| 4 | B5 | RFQ attachments | TODO |
+| 5 | S5 | Paid placement / boost (marked "kiemelt") | TODO |
+| 6 | S6 | Supplier offer quota then paywall | TODO |
+| 7 | $1 | Team / Enterprise tier | TODO |
+| 8 | $5 | Annual billing discount | TODO |
+| 9 | $3 | Success-fee option | TODO |
+
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
