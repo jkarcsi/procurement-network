@@ -7,7 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Procura — project-specific notes
 
 AI-assisted B2B procurement network MVP for Hungarian SMEs. Details: README.md.
-Standing development brief for autonomous runs: ROUTINE_PROMPT.md.
+Standing development brief and full roadmap for autonomous runs: IMPLEMENTATION_PLAN.md.
 
 ## Commands
 
