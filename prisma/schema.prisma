@@ -55,6 +55,10 @@ model Company {
   stripeCustomerId     String?
   stripeSubscriptionId String?
   creditBalance   Int              @default(0)
+  referralCode    String?          @unique
+  referredById    String?
+  referredBy      Company?         @relation("Referrals", fields: [referredById], references: [id])
+  referrals       Company[]        @relation("Referrals")
   users           User[]
   supplierProfile SupplierProfile?
   rfqs            Rfq[]

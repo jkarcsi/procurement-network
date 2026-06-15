@@ -5,9 +5,9 @@ import { db } from "@/lib/db";
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; role?: string; claim?: string }>;
+  searchParams: Promise<{ error?: string; role?: string; claim?: string; ref?: string }>;
 }) {
-  const { error, role, claim } = await searchParams;
+  const { error, role, claim, ref } = await searchParams;
 
   // Claim flow: an unregistered invitee registers from a reply link. Prefill
   // their email + company name from the invite, and default to the supplier role.
@@ -36,7 +36,14 @@ export default async function RegisterPage({
         </div>
       )}
 
+      {ref && (
+        <div className="mt-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg p-3">
+          Meghívóval érkeztél – a regisztráció után kreditet írunk jóvá (vevő fiók esetén).
+        </div>
+      )}
+
       <form action={registerAction} className="mt-6 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        {ref && <input type="hidden" name="ref" value={ref} />}
         <div className="grid grid-cols-2 gap-3">
           <label
             className="flex items-center gap-2 border border-slate-300 rounded-lg px-3 py-2 cursor-pointer has-checked:border-indigo-600 has-checked:bg-indigo-50"

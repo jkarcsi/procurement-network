@@ -3,7 +3,11 @@ import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { deleteApiKeyAction, deleteAccountAction } from "@/lib/actions";
 import { formatDateTime } from "@/lib/format";
+import { ensureReferralCode, REFERRAL_BONUS } from "@/lib/referral";
 import CreateApiKey from "./create-api-key";
+import CopyButton from "./copy-button";
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
 export default async function AccountPage({
   searchParams,
@@ -18,6 +22,14 @@ export default async function AccountPage({
     ? await db.apiKey.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" } })
     : [];
 
+  let referralCode: string | null = null;
+  let referralCount = 0;
+  if (user.companyId) {
+    referralCode = await ensureReferralCode(user.companyId);
+    referralCount = await db.company.count({ where: { referredById: user.companyId } });
+  }
+  const referralLink = referralCode ? `${BASE_URL}/register?ref=${referralCode}` : "";
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
       <div>
@@ -30,6 +42,22 @@ export default async function AccountPage({
       {error && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg p-3">
           {error}
+        </div>
+      )}
+
+      {referralCode && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="font-semibold text-slate-900">Hívj meg egy céget</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Oszd meg a meghívó linkedet: ha valaki regisztrál vele, mindketten {REFERRAL_BONUS}{" "}
+            kreditet kaptok (vevő fiók esetén). Eddig {referralCount} cég csatlakozott a meghívásoddal.
+          </p>
+          <div className="mt-4 flex flex-col sm:flex-row gap-2">
+            <code className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs break-all select-all">
+              {referralLink}
+            </code>
+            <CopyButton value={referralLink} />
+          </div>
         </div>
       )}
 

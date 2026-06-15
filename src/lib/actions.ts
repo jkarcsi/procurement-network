@@ -12,6 +12,7 @@ import { sendWelcomeEmail } from "./email";
 import { acceptOffer, submitOffer } from "./offers";
 import { sendRfq, joinOpenRfq } from "./rfqs";
 import { updateSupplierProfile, claimInvitesForSupplier } from "./suppliers";
+import { ensureReferralCode, applyReferral } from "./referral";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit } from "./limits";
@@ -31,6 +32,7 @@ export async function registerAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const role = formData.get("role") === "SUPPLIER" ? "SUPPLIER" : "BUYER";
+  const refCode = String(formData.get("ref") ?? "").trim();
 
   if (!rateLimit(`register:${await clientIp()}`, 5, 60 * 60 * 1000)) {
     redirect("/register?error=" + encodeURIComponent(RATE_LIMIT_MESSAGE));
@@ -44,6 +46,7 @@ export async function registerAction(formData: FormData) {
   }
 
   const company = await db.company.create({ data: { name: companyName, type: role } });
+  await ensureReferralCode(company.id);
   let claimed = 0;
   if (role === "SUPPLIER") {
     const profile = await db.supplierProfile.create({ data: { companyId: company.id, email } });
@@ -52,6 +55,7 @@ export async function registerAction(formData: FormData) {
   } else {
     await grantCredits(company.id, WELCOME_BONUS, "BONUS", "Üdvözlő kreditek regisztrációért");
   }
+  if (refCode) await applyReferral({ id: company.id, type: role }, refCode);
   const user = await db.user.create({
     data: {
       name,
