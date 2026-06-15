@@ -191,8 +191,8 @@ code.
 | 5 | G4 | Public / open-tender marketplace (opt-in RFQs visible to all matching suppliers) | DONE (run 20) — `Rfq.isPublic` + buyer toggle on RFQ detail; public no-auth `/tenders` board with supplier-register CTA; footer link |
 | 6 | G7 | Social proof on landing (real outcome stats) | DONE (run 20) — real supplier/RFQ/offer counts band on `/` (shown once suppliers exist) |
 | 7 | G5 | Programmatic SEO pages (`{kategória} {megye}`) | DONE (run 20) — `/szolgaltatas/[category]/[region]` (120 prerendered, metadata/canonical, supplier count, cross-links, RFQ/register CTAs) + `sitemap.ts` |
-| 8 | G6 | Embeddable "ajánlatot kérek" widget | TODO |
-| 9 | G8 | Partnerships / verified supplier import (chambers) | TODO (mostly business dev) |
+| 8 | G6 | Embeddable "ajánlatot kérek" widget | DONE (run 20) — `Company.embedToken`; chrome-free `/embed/[token]` (GET form, POST creates READY RFQ via clarify fallback, rate-limited); buyer embed-snippet card on `/account` |
+| 9 | G8 | Partnerships / verified supplier import (chambers) | DEFERRED — business-dev led; codeable part (bulk verified import) belongs with the lead-discovery project (G1) |
 
 ### Revenue track (after Growth)
 
@@ -211,6 +211,20 @@ code.
 ## Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-15 — run 20 (Growth track)
+
+- **Added** the ordered Growth/Revenue tracks to the plan from `BACKLOG.md`.
+- **Shipped (Growth track):** G2 claim-profile, G3 referral program, O2 admin
+  supply-gap alerts, G4 public open-tender board (`/tenders`), G7 landing
+  social-proof stats, G5 programmatic SEO pages (`/szolgaltatas/[c]/[r]` +
+  sitemap), G6 embeddable quote widget (`/embed/[token]`). G1 (lead-discovery)
+  remains an in-progress separate project; G8 deferred (business-dev).
+- **Verified:** each slice build + lint + tests (9/9) + smoke green, with a
+  live HTTP check; committed and pushed one per slice.
+- **Next step:** Revenue track, in order — start with **T1 reviews & ratings**
+  (post-DECIDED buyer rating, feeds matching ≤5 pts), then \$2 auto-recharge,
+  B4 Q&A thread, B5 attachments.
 
 ### 2026-06-13 — run 18
 

@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { deleteApiKeyAction, deleteAccountAction } from "@/lib/actions";
 import { formatDateTime } from "@/lib/format";
 import { ensureReferralCode, REFERRAL_BONUS } from "@/lib/referral";
+import { ensureEmbedToken } from "@/lib/embed";
 import CreateApiKey from "./create-api-key";
 import CopyButton from "./copy-button";
 
@@ -29,6 +30,13 @@ export default async function AccountPage({
     referralCount = await db.company.count({ where: { referredById: user.companyId } });
   }
   const referralLink = referralCode ? `${BASE_URL}/register?ref=${referralCode}` : "";
+
+  // Embeddable quote-request widget — buyers only.
+  let embedSnippet = "";
+  if (user.companyId && user.role === "BUYER") {
+    const embedToken = await ensureEmbedToken(user.companyId);
+    embedSnippet = `<iframe src="${BASE_URL}/embed/${embedToken}" width="100%" height="420" style="border:0" title="Ajánlatkérés"></iframe>`;
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
@@ -57,6 +65,22 @@ export default async function AccountPage({
               {referralLink}
             </code>
             <CopyButton value={referralLink} />
+          </div>
+        </div>
+      )}
+
+      {embedSnippet && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="font-semibold text-slate-900">Beágyazható ajánlatkérő űrlap</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Tedd ki a saját weboldaladra: a látogatók egy mondatban leírják az igényüket, és az
+            ajánlatkérés a Procura-fiókodba kerül (a kiküldés előtt te döntesz róla).
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            <code className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs break-all select-all">
+              {embedSnippet}
+            </code>
+            <CopyButton value={embedSnippet} />
           </div>
         </div>
       )}
