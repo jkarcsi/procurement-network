@@ -189,7 +189,7 @@ code.
 | 3 | G3 | Referral program (invite → both get credits on activation) | DONE (run 20) — `src/lib/referral.ts`; `Company.referralCode`/`referredById`; reward on register (buyer-only, capped); share card on `/account` |
 | 4 | O2 | Supply-gap alerts (admin: demand vs. few suppliers per category×region) | DONE (run 20) — `getSupplyGaps()` + `/admin/supply-gaps` (category & region demand/supply tables, gap flags, nationwide counted) |
 | 5 | G4 | Public / open-tender marketplace (opt-in RFQs visible to all matching suppliers) | DONE (run 20) — `Rfq.isPublic` + buyer toggle on RFQ detail; public no-auth `/tenders` board with supplier-register CTA; footer link |
-| 6 | G7 | Social proof on landing (real outcome stats) | TODO |
+| 6 | G7 | Social proof on landing (real outcome stats) | DONE (run 20) — real supplier/RFQ/offer counts band on `/` (shown once suppliers exist) |
 | 7 | G5 | Programmatic SEO pages (`{kategória} {megye}`) | TODO |
 | 8 | G6 | Embeddable "ajánlatot kérek" widget | TODO |
 | 9 | G8 | Partnerships / verified supplier import (chambers) | TODO (mostly business dev) |

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CATEGORIES } from "@/lib/taxonomy";
+import { db } from "@/lib/db";
 
 export default async function Home({
   searchParams,
@@ -7,6 +8,21 @@ export default async function Home({
   searchParams: Promise<{ deleted?: string }>;
 }) {
   const { deleted } = await searchParams;
+
+  // Real network stats (social proof). Shown only once the network has suppliers.
+  const [supplierCount, rfqCount, offerCount] = await Promise.all([
+    db.supplierProfile.count(),
+    db.rfq.count(),
+    db.offer.count(),
+  ]);
+  const proof =
+    supplierCount > 0
+      ? [
+          { value: `${supplierCount}`, text: "regisztrált beszállító a hálózatban" },
+          { value: `${rfqCount}`, text: "ajánlatkérés indult eddig" },
+          { value: `${offerCount}`, text: "beérkezett ajánlat" },
+        ]
+      : null;
   return (
     <div className="max-w-6xl mx-auto px-4">
       {deleted && (
@@ -56,6 +72,22 @@ export default async function Home({
           ))}
         </div>
       </section>
+
+      {proof && (
+        <section className="py-6">
+          <p className="text-center text-xs font-medium uppercase tracking-wide text-slate-400">
+            A hálózat számokban
+          </p>
+          <div className="mt-3 grid sm:grid-cols-3 gap-4 text-center">
+            {proof.map((item) => (
+              <div key={item.text} className="bg-white border border-slate-200 rounded-2xl p-5">
+                <p className="text-3xl font-bold text-slate-900">{item.value}</p>
+                <p className="mt-1 text-sm text-slate-600">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="py-8 grid sm:grid-cols-3 gap-4 text-center">
         {[
