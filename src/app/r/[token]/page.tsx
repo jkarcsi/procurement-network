@@ -258,7 +258,7 @@ export default async function SupplierReplyPage({
             </p>
           </div>
           <a
-            href="/register?role=SUPPLIER"
+            href={`/register?role=SUPPLIER&claim=${token}`}
             className="shrink-0 bg-white text-slate-900 px-5 py-2.5 rounded-xl font-medium hover:bg-slate-100"
           >
             Ingyenes regisztráció

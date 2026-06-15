@@ -11,7 +11,7 @@ import { clarifyIntake, buildSpec, compareOffers, type ClarifyResult, type QA } 
 import { sendWelcomeEmail } from "./email";
 import { acceptOffer, submitOffer } from "./offers";
 import { sendRfq, joinOpenRfq } from "./rfqs";
-import { updateSupplierProfile } from "./suppliers";
+import { updateSupplierProfile, claimInvitesForSupplier } from "./suppliers";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit } from "./limits";
@@ -44,8 +44,11 @@ export async function registerAction(formData: FormData) {
   }
 
   const company = await db.company.create({ data: { name: companyName, type: role } });
+  let claimed = 0;
   if (role === "SUPPLIER") {
-    await db.supplierProfile.create({ data: { companyId: company.id, email } });
+    const profile = await db.supplierProfile.create({ data: { companyId: company.id, email } });
+    // Connect any prior cold invites sent to this email and prefill the profile
+    claimed = await claimInvitesForSupplier(profile.id, email, companyName);
   } else {
     await grantCredits(company.id, WELCOME_BONUS, "BONUS", "Üdvözlő kreditek regisztrációért");
   }
@@ -59,9 +62,9 @@ export async function registerAction(formData: FormData) {
     },
   });
   await sendWelcomeEmail({ to: email, name, role });
-  await track("user_registered", user.id, { role });
+  await track("user_registered", user.id, { role, claimed });
   await createSession(user.id);
-  redirect(role === "SUPPLIER" ? "/supplier/profile" : "/dashboard");
+  redirect(role === "SUPPLIER" ? `/supplier/profile?claimed=${claimed}` : "/dashboard");
 }
 
 export async function loginAction(formData: FormData) {

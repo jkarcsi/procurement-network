@@ -7,9 +7,10 @@ import { CATEGORIES, REGIONS } from "@/lib/taxonomy";
 export default async function SupplierProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string }>;
+  searchParams: Promise<{ ok?: string; claimed?: string }>;
 }) {
-  const { ok } = await searchParams;
+  const { ok, claimed } = await searchParams;
+  const claimedCount = Number(claimed ?? "0") || 0;
   const user = await getSessionUser();
   const profile = user?.company?.supplierProfile;
   if (!user || user.role !== "SUPPLIER" || !profile) redirect("/login?next=/supplier/profile");
@@ -31,6 +32,13 @@ export default async function SupplierProfilePage({
       {ok && (
         <div className="mt-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg p-3">
           Profil elmentve.
+        </div>
+      )}
+
+      {claimedCount > 0 && (
+        <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-800 text-sm rounded-lg p-3">
+          {claimedCount} korábbi megkeresésedet a fiókodhoz kapcsoltuk, és a kategóriáidat,
+          régióidat előre kitöltöttük. Nézd át és pontosítsd lent.
         </div>
       )}
 

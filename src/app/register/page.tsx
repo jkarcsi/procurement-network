@@ -1,17 +1,34 @@
 import Link from "next/link";
 import { registerAction } from "@/lib/actions";
+import { db } from "@/lib/db";
 
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; role?: string }>;
+  searchParams: Promise<{ error?: string; role?: string; claim?: string }>;
 }) {
-  const { error, role } = await searchParams;
-  const defaultRole = role === "SUPPLIER" ? "SUPPLIER" : "BUYER";
+  const { error, role, claim } = await searchParams;
+
+  // Claim flow: an unregistered invitee registers from a reply link. Prefill
+  // their email + company name from the invite, and default to the supplier role.
+  const invite = claim
+    ? await db.rfqInvite.findUnique({ where: { token: claim } })
+    : null;
+  const claimEmail = invite?.email ?? "";
+  const claimCompany =
+    invite && invite.companyName !== invite.email ? invite.companyName : "";
+  const defaultRole = role === "SUPPLIER" || invite ? "SUPPLIER" : "BUYER";
 
   return (
     <div className="max-w-md mx-auto px-4 py-16">
       <h1 className="text-2xl font-bold text-slate-900">Regisztráció</h1>
+
+      {invite && (
+        <div className="mt-4 bg-indigo-50 border border-indigo-200 text-indigo-800 text-sm rounded-lg p-3">
+          A kapott megkeresésed alapján előre kitöltöttük az adataidat. A
+          regisztrációval a korábbi megkereséseidet a fiókodhoz kapcsoljuk.
+        </div>
+      )}
 
       {error && (
         <div className="mt-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg p-3">
@@ -49,6 +66,7 @@ export default async function RegisterPage({
             type="text"
             name="companyName"
             required
+            defaultValue={claimCompany}
             className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
@@ -58,6 +76,7 @@ export default async function RegisterPage({
             type="email"
             name="email"
             required
+            defaultValue={claimEmail}
             className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>

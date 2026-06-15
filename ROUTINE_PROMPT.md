@@ -185,7 +185,7 @@ code.
 | Order | Code | Item | Status |
 |---|---|---|---|
 | 1 | G1 | Lead-discovery & cold-outreach engine (separate project, legal-gated) | IN PROGRESS — scaffold in `lead-discovery/` (run 19); blocked from its own repo this session |
-| 2 | G2 | "Claim your business profile" (cold invitee → register → merge + prefill) | TODO |
+| 2 | G2 | "Claim your business profile" (cold invitee → register → merge + prefill) | DONE (run 20) — `claimInvitesForSupplier`; reply-page CTA carries claim token; register prefill; profile claimed-banner |
 | 3 | G3 | Referral program (invite → both get credits on activation) | TODO |
 | 4 | O2 | Supply-gap alerts (admin: demand vs. few suppliers per category×region) | TODO |
 | 5 | G4 | Public / open-tender marketplace (opt-in RFQs visible to all matching suppliers) | TODO |

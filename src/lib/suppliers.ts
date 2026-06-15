@@ -47,6 +47,57 @@ export async function updateSupplierProfile(profileId: string, input: SupplierPr
   }
 }
 
+// Links any prior cold invites (sent to this email with no registered supplier
+// yet) to a newly registered supplier, pre-fills the profile's categories and
+// regions from those RFQs, and reflects the history in the response stats.
+// Returns how many invites were claimed.
+export async function claimInvitesForSupplier(
+  profileId: string,
+  email: string,
+  companyName: string,
+): Promise<number> {
+  const invites = await db.rfqInvite.findMany({
+    where: { supplierId: null, email: email.toLowerCase() },
+    include: { rfq: true, offer: true },
+  });
+  if (invites.length === 0) return 0;
+
+  await db.rfqInvite.updateMany({
+    where: { id: { in: invites.map((i) => i.id) } },
+    data: { supplierId: profileId, companyName },
+  });
+
+  const categoryIds = [...new Set(invites.map((i) => i.rfq.categoryId).filter((x): x is string => !!x))];
+  const regionIds = [...new Set(invites.map((i) => i.rfq.regionId).filter((x): x is string => !!x))];
+  for (const categoryId of categoryIds) {
+    await db.supplierCategory.upsert({
+      where: { supplierId_categoryId: { supplierId: profileId, categoryId } },
+      update: {},
+      create: { supplierId: profileId, categoryId },
+    });
+  }
+  for (const regionId of regionIds) {
+    await db.supplierRegion.upsert({
+      where: { supplierId_regionId: { supplierId: profileId, regionId } },
+      update: {},
+      create: { supplierId: profileId, regionId },
+    });
+  }
+
+  const responded = invites.filter((i) => i.offer || i.status === "OFFERED").length;
+  await db.supplierProfile.update({
+    where: { id: profileId },
+    data: { inviteCount: { increment: invites.length }, responseCount: { increment: responded } },
+  });
+
+  for (const inv of invites) {
+    await db.auditLog.create({
+      data: { rfqId: inv.rfqId, actor: email, event: "SUPPLIER_CLAIMED", meta: companyName },
+    });
+  }
+  return invites.length;
+}
+
 export async function getSupplierProfile(profileId: string) {
   const [profile, categories, regions] = await Promise.all([
     db.supplierProfile.findUniqueOrThrow({ where: { id: profileId } }),
