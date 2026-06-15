@@ -6,6 +6,7 @@ const TABS = [
   { href: "/admin/users", label: "Felhasználók" },
   { href: "/admin/rfqs", label: "Ajánlatkérések" },
   { href: "/admin/suppliers", label: "Beszállítók" },
+  { href: "/admin/supply-gaps", label: "Kínálati rések" },
   { href: "/admin/credits", label: "Kreditek" },
 ];
 
