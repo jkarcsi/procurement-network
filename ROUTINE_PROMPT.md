@@ -198,7 +198,7 @@ code.
 
 | Order | Code | Item | Status |
 |---|---|---|---|
-| 1 | T1 | Reviews & ratings (feeds matching) | TODO |
+| 1 | T1 | Reviews & ratings (feeds matching) | DONE (run 21) — `Review` model + `ratingSum/ratingCount`; `submitReview` (one/RFQ, registered winner only); matching +avgRating pts; review form/display on RFQ detail; ★ on shortlist |
 | 2 | $2 | Credit auto-recharge | TODO |
 | 3 | B4 | RFQ Q&A thread (answers feed category templates) | TODO |
 | 4 | B5 | RFQ attachments | TODO |

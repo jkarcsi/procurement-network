@@ -107,9 +107,25 @@ model SupplierProfile {
   categories       SupplierCategory[]
   regions          SupplierRegion[]
   invites          RfqInvite[]
+  reviews          Review[]
   inviteCount      Int                @default(0)
   responseCount    Int                @default(0)
   avgResponseHours Float?
+  ratingSum        Int                @default(0)
+  ratingCount      Int                @default(0)
+}
+
+// Buyer's rating of the winning supplier after an RFQ is decided. One per RFQ.
+model Review {
+  id                String          @id @default(cuid())
+  rfqId             String          @unique
+  rfq               Rfq             @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierId        String
+  supplier          SupplierProfile @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  reviewerCompanyId String
+  rating            Int // 1..5
+  comment           String?
+  createdAt         DateTime        @default(now())
 }
 
 model Category {
@@ -165,6 +181,7 @@ model Rfq {
   invites      RfqInvite[]
   offers       Offer[]
   auditLogs    AuditLog[]
+  review       Review?
   createdAt    DateTime      @default(now())
 }
 

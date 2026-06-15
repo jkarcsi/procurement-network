@@ -12,6 +12,7 @@ export type SupplierMatch = {
   certifications: string | null;
   regionNames: string[];
   responseRate: number | null;
+  avgRating: number | null;
 };
 
 export async function shortlistSuppliers(
@@ -52,6 +53,12 @@ export async function shortlistSuppliers(
       reasons.push("tanúsítvánnyal rendelkezik");
     }
 
+    const avgRating = s.ratingCount > 0 ? s.ratingSum / s.ratingCount : null;
+    if (avgRating !== null) {
+      score += Math.round(avgRating); // up to 5 points
+      if (avgRating >= 4.5) reasons.push("kiváló értékelés");
+    }
+
     return {
       supplierId: s.id,
       companyName: s.company.name,
@@ -61,6 +68,7 @@ export async function shortlistSuppliers(
       certifications: s.certifications,
       regionNames: s.regions.map((r) => r.region.name),
       responseRate,
+      avgRating: avgRating !== null ? Math.round(avgRating * 10) / 10 : null,
     };
   });
 

@@ -13,6 +13,7 @@ import { acceptOffer, submitOffer } from "./offers";
 import { sendRfq, joinOpenRfq } from "./rfqs";
 import { updateSupplierProfile, claimInvitesForSupplier } from "./suppliers";
 import { ensureReferralCode, applyReferral } from "./referral";
+import { submitReview } from "./reviews";
 import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit } from "./limits";
@@ -412,6 +413,23 @@ export async function upgradeToProAction() {
   await track("pro_upgraded", user.id, { mode: "demo" });
   revalidatePath("/pricing");
   redirect("/pricing?pro=1");
+}
+
+// ---------- Reviews ----------
+
+export async function submitReviewAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
+
+  const rfqId = String(formData.get("rfqId") ?? "");
+  const rating = Number.parseInt(String(formData.get("rating") ?? ""), 10);
+  const comment = String(formData.get("comment") ?? "");
+
+  const result = await submitReview(rfqId, { companyId: user.companyId }, rating, comment);
+  if (!result.ok) redirect(`/rfq/${rfqId}?error=${encodeURIComponent(result.error)}`);
+
+  revalidatePath(`/rfq/${rfqId}`);
+  redirect(`/rfq/${rfqId}`);
 }
 
 // ---------- Notifications ----------

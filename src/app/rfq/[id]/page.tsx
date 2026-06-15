@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { shortlistSuppliers } from "@/lib/matching";
-import { sendRfqAction, acceptOfferAction, compareOffersAction, toggleRfqPublicAction } from "@/lib/actions";
+import { sendRfqAction, acceptOfferAction, compareOffersAction, toggleRfqPublicAction, submitReviewAction } from "@/lib/actions";
 import { formatDate, formatDateTime, formatHuf, RFQ_STATUS, INVITE_STATUS, OFFER_STATUS } from "@/lib/format";
 import type { RfqSpec } from "@/lib/ai";
 
@@ -26,14 +26,18 @@ export default async function RfqDetailPage({
       region: true,
       questions: { orderBy: { order: "asc" } },
       invites: { orderBy: { sentAt: "asc" } },
-      offers: { orderBy: { priceNet: "asc" } },
+      offers: { orderBy: { priceNet: "asc" }, include: { invite: true } },
       auditLogs: { orderBy: { createdAt: "asc" } },
+      review: true,
     },
   });
   if (!rfq || rfq.companyId !== user.companyId) notFound();
 
   const spec: RfqSpec | null = rfq.spec ? JSON.parse(rfq.spec) : null;
   const status = RFQ_STATUS[rfq.status] ?? RFQ_STATUS.READY;
+  const acceptedOffer = rfq.offers.find((o) => o.status === "ACCEPTED");
+  const canReview =
+    rfq.status === "DECIDED" && !rfq.review && Boolean(acceptedOffer?.invite?.supplierId);
   const matches =
     rfq.status === "READY" && rfq.categoryId
       ? await shortlistSuppliers(rfq.categoryId, rfq.regionId)
@@ -191,6 +195,9 @@ export default async function RfqDetailPage({
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-sm font-semibold text-indigo-700">{m.score} pont</span>
+                    {m.avgRating !== null && (
+                      <p className="text-xs text-amber-500">★ {m.avgRating.toFixed(1)}</p>
+                    )}
                     {m.responseRate !== null && (
                       <p className="text-xs text-slate-400">
                         válaszarány {Math.round(m.responseRate * 100)}%
@@ -356,6 +363,52 @@ export default async function RfqDetailPage({
                 Az összefoglaló döntéstámogatás – a végső döntés a tiéd.
               </p>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Supplier review (after a decision) */}
+      {rfq.status === "DECIDED" && acceptedOffer && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="font-semibold text-slate-900">A teljesítő értékelése</h2>
+          {rfq.review ? (
+            <div className="mt-3">
+              <p className="text-amber-500 text-lg">
+                {"★".repeat(rfq.review.rating)}
+                <span className="text-slate-300">{"★".repeat(5 - rfq.review.rating)}</span>
+              </p>
+              {rfq.review.comment && <p className="mt-1 text-sm text-slate-600">{rfq.review.comment}</p>}
+              <p className="mt-1 text-xs text-slate-400">Köszönjük az értékelést.</p>
+            </div>
+          ) : canReview ? (
+            <form action={submitReviewAction} className="mt-3 space-y-3">
+              <input type="hidden" name="rfqId" value={rfq.id} />
+              <p className="text-sm text-slate-500">
+                Értékeld {acceptedOffer.companyName} teljesítését – ez segít a többi vevőnek és a
+                jövőbeli párosításnak.
+              </p>
+              <div className="flex gap-4">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <label key={n} className="flex items-center gap-1 text-sm cursor-pointer">
+                    <input type="radio" name="rating" value={n} required className="accent-amber-500" />
+                    {n}★
+                  </label>
+                ))}
+              </div>
+              <textarea
+                name="comment"
+                rows={2}
+                placeholder="Megjegyzés (opcionális)"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700">
+                Értékelés beküldése
+              </button>
+            </form>
+          ) : (
+            <p className="mt-3 text-sm text-slate-500">
+              A nyertes beszállító nem regisztrált fiókkal rendelkezik, így nem értékelhető.
+            </p>
           )}
         </div>
       )}
