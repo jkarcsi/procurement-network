@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { shortlistSuppliers } from "@/lib/matching";
-import { sendRfqAction, acceptOfferAction, compareOffersAction, toggleRfqPublicAction, submitReviewAction } from "@/lib/actions";
+import { sendRfqAction, acceptOfferAction, compareOffersAction, toggleRfqPublicAction, submitReviewAction, answerRfqQuestionAction } from "@/lib/actions";
 import { formatDate, formatDateTime, formatHuf, RFQ_STATUS, INVITE_STATUS, OFFER_STATUS } from "@/lib/format";
 import type { RfqSpec } from "@/lib/ai";
 
@@ -29,6 +29,7 @@ export default async function RfqDetailPage({
       offers: { orderBy: { priceNet: "asc" }, include: { invite: true } },
       auditLogs: { orderBy: { createdAt: "asc" } },
       review: true,
+      qnas: { orderBy: { createdAt: "asc" } },
     },
   });
   if (!rfq || rfq.companyId !== user.companyId) notFound();
@@ -364,6 +365,43 @@ export default async function RfqDetailPage({
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Q&A thread */}
+      {rfq.qnas.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="font-semibold text-slate-900">Beszállítói kérdések ({rfq.qnas.length})</h2>
+          <ul className="mt-3 space-y-4">
+            {rfq.qnas.map((q) => (
+              <li key={q.id} className="border-l-2 border-slate-200 pl-3">
+                <p className="text-sm text-slate-800">
+                  <span className="font-medium">K:</span> {q.question}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {q.askedBy} · {formatDateTime(q.createdAt)}
+                </p>
+                {q.answer ? (
+                  <p className="mt-1 text-sm text-emerald-800">
+                    <span className="font-medium">V:</span> {q.answer}
+                  </p>
+                ) : (
+                  <form action={answerRfqQuestionAction} className="mt-2 flex flex-col sm:flex-row gap-2">
+                    <input type="hidden" name="qnaId" value={q.id} />
+                    <input
+                      name="answer"
+                      required
+                      placeholder="Válaszod…"
+                      className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button className="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700">
+                      Válasz
+                    </button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

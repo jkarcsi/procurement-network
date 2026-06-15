@@ -186,7 +186,22 @@ model Rfq {
   offers       Offer[]
   auditLogs    AuditLog[]
   review       Review?
+  qnas         RfqQna[]
   createdAt    DateTime      @default(now())
+}
+
+// Clarifying Q&A on a sent RFQ: a supplier asks, the buyer answers; the whole
+// thread is visible to the buyer and all invitees.
+model RfqQna {
+  id         String    @id @default(cuid())
+  rfqId      String
+  rfq        Rfq       @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierId String? // asker (registered supplier), if any
+  askedBy    String // display label for the asker
+  question   String
+  answer     String?
+  createdAt  DateTime  @default(now())
+  answeredAt DateTime?
 }
 
 model RfqQuestion {

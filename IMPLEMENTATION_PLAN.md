@@ -175,8 +175,8 @@ then the broader backlog by priority. Update Status as each ships.
 |---|---|---|---|
 | 1 | T1 | Reviews & ratings (feeds matching) | ✅ DONE (run 21) |
 | 2 | $2 | Credit auto-recharge | ✅ DONE (run 21) — threshold/package settings on `/credits`; `maybeAutoRecharge` after each charge (demo grant; Stripe off-session when a saved card exists) |
-| 3 | B4 | RFQ Q&A thread (answers feed category templates) | TODO ← **next** |
-| 4 | B5 | RFQ attachments | TODO |
+| 3 | B4 | RFQ Q&A thread (answers feed category templates) | DONE (run 21) — `RfqQna`; supplier asks on `/r/[token]`, buyer answers on RFQ detail; thread visible both sides; notifications. (Template-feedback sub-part deferred to an admin "frequent questions" view) |
+| 4 | B5 | RFQ attachments | TODO ← **next** |
 | 5 | S5 | Paid placement / boost (marked "kiemelt") | TODO |
 | 6 | S6 | Supplier offer quota then paywall | TODO |
 | 7 | $1 | Team / Enterprise tier | TODO |
@@ -402,8 +402,11 @@ off (LIA/DPIA, privacy notice, suppression/opt-out).**
   "kiváló értékelés" reason, RFQ-detail review form/display, ★ on the shortlist.
 - **Verified:** build, lint, tests (9/9), smoke green; live review updates the
   rating sum/count, double/invalid blocked, matching reflects avgRating.
-- **Next step:** Revenue track in order — **$2 credit auto-recharge**, then B4
-  Q&A thread, B5 attachments, S5/S6.
+- **Also shipped (Revenue):** $2 credit auto-recharge (threshold/package on
+  `/credits`, `maybeAutoRecharge` after each charge); B4 RFQ Q&A thread
+  (`RfqQna`, ask on reply page, answer on RFQ detail, notifications).
+- **Next step:** Revenue track — **B5 RFQ attachments**, then S5 boost, S6
+  offer quota, $1 team tier.
 
 ### 2026-06-15 — run 20 (Growth track)
 

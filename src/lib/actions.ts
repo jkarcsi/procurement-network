@@ -14,6 +14,7 @@ import { sendRfq, joinOpenRfq } from "./rfqs";
 import { updateSupplierProfile, claimInvitesForSupplier } from "./suppliers";
 import { ensureReferralCode, applyReferral } from "./referral";
 import { submitReview } from "./reviews";
+import { notifyUser, notifyCompanyUsers } from "./notifications";
 import { chargeCredits, grantCredits, maybeAutoRecharge, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit } from "./limits";
@@ -436,6 +437,75 @@ export async function upgradeToProAction() {
   await track("pro_upgraded", user.id, { mode: "demo" });
   revalidatePath("/pricing");
   redirect("/pricing?pro=1");
+}
+
+// ---------- RFQ Q&A ----------
+
+// A supplier asks a clarifying question from the token-based reply page.
+export async function askRfqQuestionAction(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  if (!rateLimit(`qna:${token}`, 5, 60 * 60 * 1000)) {
+    redirect(`/r/${token}?error=${encodeURIComponent(RATE_LIMIT_MESSAGE)}`);
+  }
+  const invite = await db.rfqInvite.findUnique({ where: { token }, include: { rfq: true } });
+  if (!invite) redirect(`/r/${token}`);
+  if (invite.rfq.status === "DECIDED" || invite.rfq.status === "CLOSED") redirect(`/r/${token}`);
+
+  const question = String(formData.get("question") ?? "").trim();
+  if (question.length < 5) {
+    redirect(`/r/${token}?error=${encodeURIComponent("Írd le a kérdésed legalább néhány szóban.")}`);
+  }
+
+  await db.rfqQna.create({
+    data: { rfqId: invite.rfqId, supplierId: invite.supplierId, askedBy: invite.companyName, question },
+  });
+  await db.auditLog.create({
+    data: { rfqId: invite.rfqId, actor: invite.email, event: "QUESTION_ASKED", meta: invite.companyName },
+  });
+
+  const buyerUser = invite.rfq.createdById
+    ? await db.user.findUnique({ where: { id: invite.rfq.createdById } })
+    : await db.user.findFirst({ where: { companyId: invite.rfq.companyId } });
+  if (buyerUser) {
+    await notifyUser({
+      userId: buyerUser.id,
+      type: "OFFER_RECEIVED",
+      message: `Új kérdés érkezett: ${invite.rfq.title}`,
+      linkUrl: `/rfq/${invite.rfqId}`,
+    });
+  }
+
+  revalidatePath(`/rfq/${invite.rfqId}`);
+  redirect(`/r/${token}?asked=1`);
+}
+
+// The buyer answers a question on the RFQ page.
+export async function answerRfqQuestionAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login");
+
+  const qnaId = String(formData.get("qnaId") ?? "");
+  const answer = String(formData.get("answer") ?? "").trim();
+  const qna = await db.rfqQna.findUnique({ where: { id: qnaId }, include: { rfq: true } });
+  if (!qna || qna.rfq.companyId !== user.companyId) redirect("/dashboard");
+  if (answer.length < 1) redirect(`/rfq/${qna.rfqId}`);
+
+  await db.rfqQna.update({ where: { id: qna.id }, data: { answer, answeredAt: new Date() } });
+
+  if (qna.supplierId) {
+    const profile = await db.supplierProfile.findUnique({ where: { id: qna.supplierId } });
+    if (profile) {
+      await notifyCompanyUsers({
+        companyId: profile.companyId,
+        type: "RFQ_INVITE",
+        message: `Válasz érkezett a kérdésedre: ${qna.rfq.title}`,
+        linkUrl: `/rfq/${qna.rfqId}`,
+      });
+    }
+  }
+
+  revalidatePath(`/rfq/${qna.rfqId}`);
+  redirect(`/rfq/${qna.rfqId}`);
 }
 
 // ---------- Reviews ----------

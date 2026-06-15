@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { submitOfferAction, declineInviteAction } from "@/lib/actions";
-import { formatDate, formatHuf } from "@/lib/format";
+import { submitOfferAction, declineInviteAction, askRfqQuestionAction } from "@/lib/actions";
+import { formatDate, formatHuf, formatDateTime } from "@/lib/format";
 import type { RfqSpec } from "@/lib/ai";
 
 // Public, token-based supplier reply page – usable without registration.
@@ -9,10 +9,10 @@ export default async function SupplierReplyPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ ok?: string; error?: string }>;
+  searchParams: Promise<{ ok?: string; error?: string; asked?: string }>;
 }) {
   const { token } = await params;
-  const { ok, error } = await searchParams;
+  const { ok, error, asked } = await searchParams;
 
   const invite = await db.rfqInvite.findUnique({
     where: { token },
@@ -52,6 +52,7 @@ export default async function SupplierReplyPage({
   const rfq = invite.rfq;
   const spec: RfqSpec | null = rfq.spec ? JSON.parse(rfq.spec) : null;
   const closed = rfq.status === "DECIDED" || rfq.status === "CLOSED";
+  const qnas = await db.rfqQna.findMany({ where: { rfqId: rfq.id }, orderBy: { createdAt: "asc" } });
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
@@ -247,6 +248,51 @@ export default async function SupplierReplyPage({
           </form>
         </div>
       )}
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h2 className="font-semibold text-slate-900">Kérdések és válaszok</h2>
+        {asked && (
+          <div className="mt-2 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg p-3">
+            Köszönjük, a kérdésed eljutott az ajánlatkérőhöz.
+          </div>
+        )}
+        {qnas.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">Még nincs kérdés. Ha valami nem világos az ajánlatadáshoz, kérdezd meg.</p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {qnas.map((q) => (
+              <li key={q.id} className="border-l-2 border-slate-200 pl-3">
+                <p className="text-sm text-slate-800">
+                  <span className="font-medium">K:</span> {q.question}
+                </p>
+                <p className="text-xs text-slate-400">{q.askedBy} · {formatDateTime(q.createdAt)}</p>
+                {q.answer ? (
+                  <p className="mt-1 text-sm text-emerald-800">
+                    <span className="font-medium">V:</span> {q.answer}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-amber-700">Válaszra vár</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {!closed && (
+          <form action={askRfqQuestionAction} className="mt-4 flex flex-col sm:flex-row gap-2">
+            <input type="hidden" name="token" value={token} />
+            <input
+              name="question"
+              required
+              minLength={5}
+              placeholder="Kérdésed az ajánlatkéréshez…"
+              className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button className="bg-slate-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-700">
+              Kérdés küldése
+            </button>
+          </form>
+        )}
+      </div>
 
       {!invite.supplier && (
         <div className="bg-slate-900 text-white rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
