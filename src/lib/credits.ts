@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { getStripe } from "./stripe";
 
 // Credit accounting for premium analysis features. All mutations go through
 // this module so every balance change leaves a ledger row.
@@ -67,4 +68,44 @@ export async function chargeCredits(
     });
     return true;
   });
+}
+
+// Tops the balance back up when it drops below the company's threshold, if
+// auto-recharge is enabled. With Stripe it charges the saved card off-session
+// (needs stripeCustomerId + stripePaymentMethodId); without Stripe it grants
+// the package immediately (demo). Never throws.
+export async function maybeAutoRecharge(companyId: string): Promise<void> {
+  try {
+    const company = await db.company.findUniqueOrThrow({ where: { id: companyId } });
+    if (!company.autoRechargeEnabled) return;
+    if (company.creditBalance >= company.autoRechargeThreshold) return;
+
+    const pkg =
+      CREDIT_PACKAGES.find((p) => p.id === company.autoRechargePackageId) ?? CREDIT_PACKAGES[0];
+
+    const stripe = getStripe();
+    if (stripe) {
+      // Off-session charge of the saved card. A SetupIntent flow to collect and
+      // save the card is the remaining production piece; until then, skip safely.
+      if (!company.stripeCustomerId || !company.stripePaymentMethodId) return;
+      const pi = await stripe.paymentIntents.create({
+        amount: pkg.priceHuf * 100,
+        currency: "huf",
+        customer: company.stripeCustomerId,
+        payment_method: company.stripePaymentMethodId,
+        off_session: true,
+        confirm: true,
+        metadata: { companyId, packageId: pkg.id, reason: "auto_recharge" },
+      });
+      if (pi.status === "succeeded") {
+        await grantCredits(companyId, pkg.credits, "PURCHASE", `${pkg.name} – automatikus feltöltés`, pi.id);
+      }
+      return;
+    }
+
+    // Demo mode: grant immediately.
+    await grantCredits(companyId, pkg.credits, "PURCHASE", `${pkg.name} – automatikus feltöltés (demo)`);
+  } catch (err) {
+    console.error("auto-recharge failed:", err);
+  }
 }

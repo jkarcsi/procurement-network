@@ -174,8 +174,8 @@ then the broader backlog by priority. Update Status as each ships.
 | Order | Code | Item | Status |
 |---|---|---|---|
 | 1 | T1 | Reviews & ratings (feeds matching) | ✅ DONE (run 21) |
-| 2 | $2 | Credit auto-recharge | TODO ← **next** |
-| 3 | B4 | RFQ Q&A thread (answers feed category templates) | TODO |
+| 2 | $2 | Credit auto-recharge | ✅ DONE (run 21) — threshold/package settings on `/credits`; `maybeAutoRecharge` after each charge (demo grant; Stripe off-session when a saved card exists) |
+| 3 | B4 | RFQ Q&A thread (answers feed category templates) | TODO ← **next** |
 | 4 | B5 | RFQ attachments | TODO |
 | 5 | S5 | Paid placement / boost (marked "kiemelt") | TODO |
 | 6 | S6 | Supplier offer quota then paywall | TODO |

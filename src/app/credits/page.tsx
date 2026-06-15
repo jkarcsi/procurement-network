@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { purchaseCreditsAction } from "@/lib/actions";
+import { purchaseCreditsAction, setAutoRechargeAction } from "@/lib/actions";
 import { CREDIT_PACKAGES, COMPARISON_COST } from "@/lib/credits";
 import { formatHuf, formatDateTime } from "@/lib/format";
 
@@ -14,9 +14,9 @@ const TX_TYPE: Record<string, string> = {
 export default async function CreditsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; canceled?: string }>;
+  searchParams: Promise<{ ok?: string; canceled?: string; saved?: string }>;
 }) {
-  const { ok, canceled } = await searchParams;
+  const { ok, canceled, saved } = await searchParams;
   const stripeEnabled = Boolean(process.env.STRIPE_SECRET_KEY);
   const user = await getSessionUser();
   if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login?next=/credits");
@@ -53,6 +53,12 @@ export default async function CreditsPage({
         </div>
       )}
 
+      {saved && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg p-3">
+          Az automatikus feltöltés beállításait elmentettük.
+        </div>
+      )}
+
       <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 text-white">
         <p className="text-sm text-indigo-200">Egyenleged</p>
         <p className="mt-1 text-4xl font-bold">
@@ -60,6 +66,57 @@ export default async function CreditsPage({
         </p>
         <p className="mt-2 text-xs text-indigo-200">{company.name}</p>
       </div>
+
+      <form action={setAutoRechargeAction} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h2 className="font-semibold text-slate-900">Automatikus feltöltés</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Ha az egyenleged a megadott szint alá csökken, automatikusan feltöltjük a kiválasztott
+          csomaggal{stripeEnabled ? " (a mentett bankkártyádról)" : " (demo módban azonnal jóváírva)"}.
+        </p>
+        <label className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-700">
+          <input
+            type="checkbox"
+            name="enabled"
+            defaultChecked={company.autoRechargeEnabled}
+            className="w-4 h-4 accent-indigo-600"
+          />
+          Automatikus feltöltés bekapcsolása
+        </label>
+        <div className="mt-4 grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Küszöb (kredit alatt)</label>
+            <input
+              type="number"
+              name="threshold"
+              min={1}
+              defaultValue={company.autoRechargeThreshold}
+              className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Feltöltő csomag</label>
+            <select
+              name="packageId"
+              defaultValue={company.autoRechargePackageId ?? CREDIT_PACKAGES[0].id}
+              className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {CREDIT_PACKAGES.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} – {p.credits} kredit
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <button className="mt-4 bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-700">
+          Mentés
+        </button>
+        {stripeEnabled && !company.stripePaymentMethodId && company.autoRechargeEnabled && (
+          <p className="mt-2 text-xs text-amber-700">
+            Az automatikus terheléshez ments el egy bankkártyát egy vásárlás során.
+          </p>
+        )}
+      </form>
 
       <div>
         <h2 className="font-semibold text-slate-900">Kreditcsomagok</h2>

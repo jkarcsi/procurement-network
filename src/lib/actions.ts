@@ -14,7 +14,7 @@ import { sendRfq, joinOpenRfq } from "./rfqs";
 import { updateSupplierProfile, claimInvitesForSupplier } from "./suppliers";
 import { ensureReferralCode, applyReferral } from "./referral";
 import { submitReview } from "./reviews";
-import { chargeCredits, grantCredits, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
+import { chargeCredits, grantCredits, maybeAutoRecharge, COMPARISON_COST, WELCOME_BONUS, CREDIT_PACKAGES } from "./credits";
 import { getStripe } from "./stripe";
 import { checkRfqCreationLimit } from "./limits";
 import { rateLimit, RATE_LIMIT_MESSAGE } from "./rateLimit";
@@ -305,6 +305,7 @@ export async function compareOffersAction(formData: FormData) {
       `/rfq/${rfqId}?error=${encodeURIComponent("Nincs elég kredited az elemzéshez. Tölts fel kreditet a Kreditek oldalon.")}`,
     );
   }
+  await maybeAutoRecharge(user.companyId);
 
   const spec = rfq.spec ? (JSON.parse(rfq.spec) as { summary?: string }) : {};
   const { text, aiUsed } = await compareOffers(
@@ -374,6 +375,28 @@ export async function purchaseCreditsAction(formData: FormData) {
 
   revalidatePath("/credits");
   redirect("/credits?ok=1");
+}
+
+export async function setAutoRechargeAction(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "BUYER" || !user.companyId) redirect("/login?next=/credits");
+
+  const enabled = formData.get("enabled") === "on";
+  const threshold = Math.max(1, Number.parseInt(String(formData.get("threshold") ?? "5"), 10) || 5);
+  const packageId = String(formData.get("packageId") ?? "");
+  const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
+
+  await db.company.update({
+    where: { id: user.companyId },
+    data: {
+      autoRechargeEnabled: enabled,
+      autoRechargeThreshold: threshold,
+      autoRechargePackageId: pkg?.id ?? CREDIT_PACKAGES[0].id,
+    },
+  });
+
+  revalidatePath("/credits");
+  redirect("/credits?saved=1");
 }
 
 // With Stripe configured (test mode), the upgrade goes through hosted

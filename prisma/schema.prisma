@@ -52,8 +52,12 @@ model Company {
   name            String
   type            String // "BUYER" | "SUPPLIER"
   plan            String           @default("FREE") // "FREE" | "PRO"
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  stripePaymentMethodId String?
+  autoRechargeEnabled   Boolean         @default(false)
+  autoRechargeThreshold Int             @default(5)
+  autoRechargePackageId String?
   creditBalance   Int              @default(0)
   referralCode    String?          @unique
   embedToken      String?          @unique
