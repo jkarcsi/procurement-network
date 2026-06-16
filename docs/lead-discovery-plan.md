@@ -135,11 +135,22 @@ record for accountability; periodic purge of never-engaged personal-data leads.
 - **OpenStreetMap** (ODbL, attribution) via the Overpass API — POIs tagged
   `shop`/`office`/`craft`/`amenity` give name, address, often phone/website.
 
-**Tier 2 — public business web pages (with care):**
+**Tier 2 — public business web pages (now a PRIMARY source, with care):**
 
-- A business's **own public contact page** (Impresszum/Kapcsolat) for a general
-  business email/phone — only where robots.txt + ToS permit, rate-limited,
+- A business's **own public website** (Impresszum/Kapcsolat plus
+  "rólunk"/"szolgáltatások" pages) for a general business email/phone **and for
+  the services it offers** — only where robots.txt + ToS permit, rate-limited,
   identified, no personal emails of individuals where a general inbox exists.
+- **Promoted from enrichment to a first-class supply source.** Many firms have no
+  usable TEÁOR mapping and aren't in open data, but their own site states plainly
+  what they do — enough to categorize and contact them. Where the **operating
+  area (category) still can't be determined by rules** (taxonomy keyword +
+  activity-code mapping), classify the scraped text with the **cheapest AI path**:
+  Claude **Haiku 4.5** via the **Message Batches API** (50% off, offline job),
+  **prompt-caching** the taxonomy/instructions prefix, **structured outputs**
+  constrained to the taxonomy enum, and **storing the decision on the Lead** so
+  it is computed once. Low-confidence results go to manual review, never to
+  auto-outreach. See `IMPLEMENTATION_PLAN.md` §9.1 for the full design.
 
 **Tier 3 — third-party platforms (only via official APIs, within ToS):**
 
@@ -225,9 +236,11 @@ Dedupe priority: VAT number → website domain → normalized name+address.
 - **Phase 1 — Open-data MVP:** Tier-1 sources (OSM/Overpass + company registry +
   chamber data) for the 6 beachhead categories in Budapest + Pest; build the
   Lead store + categorization + dedupe + admin review. No outreach yet.
-- **Phase 2 — Enrichment & verification:** Tier-2 public contact pages
-  (robots/ToS-compliant), VAT/VIES verification, quality scoring, manual review
-  queue.
+- **Phase 2 — Tier-2 sites as a primary source + verification:** collect from
+  business websites as a first-class supply source (robots/ToS-compliant),
+  categorize undetermined leads with the low-cost AI path (Haiku 4.5 + Batch API
+  + prompt caching + structured outputs, stored once — §9.1 of the plan), plus
+  VAT/VIES verification, quality scoring, and a manual review queue.
 - **Phase 3 — Cold-invite loop (gated):** integrate with Procura behind a flag,
   tiny volume, heavy monitoring; measure deliverability, response, registration,
   opt-out, complaints; iterate copy/targeting.

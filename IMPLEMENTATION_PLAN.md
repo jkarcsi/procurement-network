@@ -159,7 +159,7 @@ then the broader backlog by priority. Update Status as each ships.
 
 | Order | Code | Item | Status |
 |---|---|---|---|
-| 1 | G1 | Lead-discovery & cold-outreach engine (separate project, legal-gated) | IN PROGRESS — scaffold in `lead-discovery/`; blocked from its own repo this session |
+| 1 | G1 | Lead-discovery & cold-outreach engine (separate project, legal-gated) | IN PROGRESS — scaffold in `lead-discovery/`; blocked from its own repo this session. **Priority sub-track:** business websites as a primary supply source + low-cost AI categorization of undetermined leads (Haiku 4.5 + Batch API + prompt caching + structured outputs, computed once and stored) — see §9.1 |
 | 2 | G2 | "Claim your business profile" | ✅ DONE (run 20) |
 | 3 | G3 | Referral program | ✅ DONE (run 20) |
 | 4 | O2 | Supply-gap alerts (admin) | ✅ DONE (run 20) |
@@ -270,7 +270,7 @@ Pick one, build a complete vertical slice, verify, push.
 
 | # | Item | Effort | Scope hint |
 |---|------|--------|-----------|
-| G1 | Lead-discovery & cold outreach engine | XL | Reach non-registered businesses with relevant RFQs → they register to respond. **Separate project — see `docs/lead-discovery-plan.md` + `lead-discovery/`** |
+| G1 | Lead-discovery & cold outreach engine | XL | Reach non-registered businesses with relevant RFQs → they register to respond. **Separate project — see `docs/lead-discovery-plan.md` + `lead-discovery/`.** Priority sub-track: business websites as a primary source + cheapest-possible AI categorization of undetermined leads (Haiku 4.5 + Batch API 50% + prompt caching + structured outputs, stored once) — §9.1 |
 | ✅ G2 | "Claim your business profile" | M | Cold lead receives an RFQ → claims + prefills its profile, converts to supplier — DONE (run 20) |
 | ✅ G3 | Referral program | M | Invite a buyer/supplier, both get credits; tracked, fraud-capped — DONE (run 20) |
 | ✅ G4 | Public/open tender marketplace | M | Opt-in RFQs on a public board; inbound supplier signups — DONE (run 20) |
@@ -383,11 +383,76 @@ build session, and is excluded from the Procura web toolchain. Extract with
 **No collection or outreach ships before Hungarian data-protection counsel signs
 off (LIA/DPIA, privacy notice, suppression/opt-out).**
 
+### 9.1 Business websites as a PRIMARY source + low-cost AI categorization (priority)
+
+A change to the lead-discovery design (`docs/lead-discovery-plan.md` Tier 2):
+treat a **business's / entrepreneur's own public website** (Impresszum,
+Kapcsolat, "rólunk"/"szolgáltatások" pages) as a **primary supply source**, not
+only an enrichment/verification input. Such a page often yields a directly
+categorizable supplier (name, services offered, contact, region) for a firm that
+has no usable TEÁOR mapping and isn't well covered by open data. Still
+robots.txt/ToS-compliant, per-domain rate-limited, identified UA, general inboxes
+only.
+
+**Categorization pipeline (rule-based first, AI only on the residual):**
+
+1. **Rule-based, deterministic, free — runs always.** Map each lead to the shared
+   Procura taxonomy via keyword detection + TEÁOR/activity-code mapping
+   (`src/lib/taxonomy.ts` / `lead-discovery/src/taxonomy.ts`), region from the
+   seat/address. This handles the bulk and must keep working **without**
+   `ANTHROPIC_API_KEY` (hard rule 4).
+2. **AI only for the undetermined residual.** Leads whose **operating area
+   (category) cannot be confidently determined** by rules go to AI for
+   classification — categorize them from the scraped website text. This is the
+   minority of leads, so spend stays small.
+
+**Cheapest AI path (concrete):**
+
+- **Model: Claude Haiku 4.5** (`claude-haiku-4-5`) — the cheapest current model
+  ($1 / $5 per 1M input/output tokens). More than enough for short-text
+  classification into a fixed taxonomy.
+- **Message Batches API — 50% off.** Categorization is an offline, non-latency-
+  sensitive enrichment job, so submit leads as a batch (`/v1/messages/batches`):
+  **half price** on all tokens, most batches finish < 1h (max 24h).
+- **Prompt caching — the taxonomy is a stable prefix.** Put the full taxonomy
+  (category list + descriptions + region list) + the classification instructions
+  + the output schema first, behind a `cache_control` breakpoint; put only the
+  per-lead website text as the varying suffix. Cache reads cost ~0.1× input.
+  (Haiku 4.5 min cacheable prefix is 4096 tokens — the taxonomy clears it.)
+- **Structured outputs — guaranteed in-taxonomy results.** Constrain the response
+  with `output_config.format` (json_schema) to a fixed shape: `categoryIds`
+  (enum drawn from the taxonomy), a `regionId`, and a `confidence`. No free-text
+  parsing; low-confidence results go to the **manual review queue**, never to
+  auto-outreach.
+- **Compute once, store it ("tároltan").** Persist the AI decision on the Lead
+  (`categoryIds`, `confidence`, `model`, `promptVersion`, `decidedAt`) so each
+  business is categorized **once** and never re-paid; re-run only if the website
+  materially changes or the taxonomy/prompt version bumps.
+
+Net effect: rules cover most leads at zero cost; AI touches only the ambiguous
+remainder, at Haiku rates × 0.5 (batch) × ~0.1 (cached prefix), paid once and
+stored — a fraction of a cent per categorized lead. **This is a priority within
+G1** (reflected in §6.1).
+
 ---
 
 ## 10. Status log
 
 > Newest entry first. Keep entries short: shipped / verified / next step.
+
+### 2026-06-16 — doc update
+
+- **Lead-discovery (G1):** added **§9.1** — business/entrepreneur websites are
+  now a **primary** supply source (not only enrichment), and undetermined leads
+  (operating area not resolvable by rules) are categorized with the **cheapest AI
+  path**: Haiku 4.5 + Message Batches API (50%) + prompt caching (taxonomy
+  prefix) + structured outputs (taxonomy enum), **computed once and stored**.
+  Marked a priority within G1 (§6.1, §7). Mirrored in
+  `docs/lead-discovery-plan.md` (Tier 2 promoted to primary; Phase 2 reworded).
+- **Vision:** `VISION.md` §6 + H2 roadmap extended to serve **private
+  individuals** — households on the buyer/demand side and individuals on the
+  provider/fulfilment side — reusing the same loop with B2C guardrails.
+- **Next step:** Revenue track — B5 RFQ attachments, then S5/S6/$1.
 
 ### 2026-06-15 — run 21
 

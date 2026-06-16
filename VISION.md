@@ -197,6 +197,25 @@ liquidity and trust — so H1–H2 must earn the right to them.
 - **Adjacencies.** Supplier CRM/ops SaaS (§4.2), buyer spend management, contract
   lifecycle, e-signature, invoicing/e-invoice, compliance management, B2B
   staffing/labor (facility services are labor-heavy), group/co-op buying.
+- **Private individuals (consumers) — on both sides of the market.** The same
+  local services (cleaning, handyman, HVAC, IT, gardening, moving, repairs,
+  safety) are also **bought by households**, not only businesses — and
+  **supplied by individuals** (sole traders, gig/odd-job providers, skilled
+  moonlighters), not only registered firms. Procura can serve private people on
+  the **demand side** (a homeowner gets several comparable quotes exactly the way
+  an SME does) *and* on the **provider/fulfilment side** (a skilled individual
+  receives relevant jobs, replies with one click, claims a profile, and builds a
+  rating). This roughly **doubles both sides of the network** while reusing the
+  *same loop, taxonomy, matching, and trust machinery*: consumer demand is cheap
+  and high-intent (strong SEO and word-of-mouth tailwind), and individual
+  providers **densify thin supply** in categories and regions where firms are
+  scarce. The consumer lane needs its own guardrails, though — full B2C
+  consumer-protection law, distance-selling/withdrawal rules, stronger identity
+  and quality verification for individual providers, and clearer dispute and
+  insurance cover (a household is a weaker party than an SME buyer). Sequencing:
+  keep **B2B as the beachhead** (higher value, recurrence, willingness to pay),
+  then open the consumer lane once liquidity and trust exist — turning Procura
+  from a B2B network into the general place **local services get sourced**.
 
 Sequencing principle: go **deep before wide** — own HU facility/compliance
 end-to-end (including payments + trust) before spreading thin across categories
@@ -318,7 +337,9 @@ subscriptions; a growing proprietary dataset.
 **H2 (18–48 mo) — Marketplace + trust + first data products + payments groundwork.**
 Take-rate (gentle), escrow MVP (with licensing/counsel), verification-as-a-service,
 supplier tools v1, buyer system-of-record, category expansion (2–3 adjacent),
-intelligence subscriptions + the first Procura Index, CEE pilot (one country).
+intelligence subscriptions + the first Procura Index, CEE pilot (one country),
+and an opt-in **consumer lane** (households as buyers, individuals as providers)
+once trust + escrow exist — reusing the same loop with B2C-specific guardrails.
 Goal: real GMV, transaction trust, a second (data) and third (lead-gen) revenue
 line, and a beachhead beyond HU.
 
